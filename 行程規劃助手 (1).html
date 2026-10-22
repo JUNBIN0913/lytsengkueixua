@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>旅程規劃</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Fonts Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      background-color: #F8FAFC;
+    }
+    .timeline-line::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 24px;
+      bottom: -16px;
+      width: 2px;
+      background: #E2E8F0;
+      z-index: 0;
+    }
+    .timeline-item:last-child .timeline-line::before {
+      display: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col antialiased selection:bg-teal-100 selection:text-teal-900">
+
+  <!-- 頂部導航列 -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-sm shadow-teal-200">
+          <i class="ph ph-compass text-xl"></i>
+        </div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-lg text-slate-800 leading-tight">旅程規劃</h1>
+          <span id="role-badge" class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">規劃者</span>
+        </div>
+      </div>
+
+      <!-- 右側快捷控制區 -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- 檔案按鈕 -->
+        <button id="open-files-btn" title="行程檔案" aria-label="行程檔案" class="inline-flex items-center justify-center w-9 h-9 text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all active:scale-95 shadow-sm">
+          <i class="ph ph-folder text-lg text-teal-600"></i>
+        </button>
+
+        <!-- 分享按鈕 -->
+        <button id="open-share-btn" title="分享" aria-label="分享" class="inline-flex items-center justify-center w-9 h-9 text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition-all active:scale-95 shadow-sm">
+          <i class="ph ph-share-network text-lg"></i>
+        </button>
+
+        <!-- 帳號登入 / 綁定按鈕 -->
+        <button id="auth-btn" title="帳號綁定 / 登入" aria-label="帳號" class="inline-flex items-center justify-center w-9 h-9 text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all active:scale-95 shadow-sm">
+          <i id="auth-btn-icon" class="ph ph-user text-lg text-teal-600"></i>
+          <img id="auth-avatar-img" class="hidden w-7 h-7 rounded-lg object-cover" alt="Avatar">
+        </button>
+
+        <!-- 新增活動按鈕 (僅可編輯時顯示) -->
+        <button id="add-item-btn" title="新增" aria-label="新增" class="owner-only inline-flex items-center justify-center w-9 h-9 text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm shadow-teal-200 transition-all active:scale-95">
+          <i class="ph ph-plus text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容區 -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 w-full flex-1">
+    
+    <!-- 登入提醒眉批 (未登入時溫馨提醒保存行程) -->
+    <div id="login-reminder-banner" class="mb-3.5 px-3.5 py-2.5 rounded-xl bg-teal-50/70 border border-teal-200/60 flex items-center justify-between gap-3 text-xs text-teal-800 transition-all">
+      <div class="flex items-center gap-2 min-w-0">
+        <i class="ph ph-cloud-arrow-up text-base text-teal-600 flex-shrink-0"></i>
+        <span class="truncate">記得登入帳號，以儲存規劃好的行程</span>
+      </div>
+      <button type="button" id="reminder-login-btn" class="flex-shrink-0 px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium text-[11px] shadow-xs transition-colors">
+        立即登入
+      </button>
+    </div>
+
+    <!-- 行程企劃抬頭卡片 -->
+    <section class="bg-white rounded-2xl p-5 sm:p-7 border border-slate-100 shadow-sm mb-6 transition-all hover:shadow-md">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 text-xs font-semibold text-teal-600 tracking-wider uppercase mb-1">
+            <i class="ph ph-map-pin"></i> <span>旅行主題</span>
+          </div>
+          <input type="text" id="trip-title-input" class="w-full text-xl sm:text-2xl font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-teal-500 focus:outline-none transition-colors py-1" placeholder="點擊輸入旅程名稱...">
+        </div>
+        
+        <!-- 天數切換分頁標籤 -->
+        <div id="day-tabs-container" class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start md:self-auto overflow-x-auto max-w-full">
+          <div id="day-tabs-list" class="flex items-center gap-1"></div>
+          <button id="add-day-btn" title="新增天數" class="owner-only px-2 py-1.5 text-slate-600 hover:text-teal-600 rounded-lg hover:bg-white/60 transition-colors">
+            <i class="ph ph-plus text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 行程清單區塊 -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+          <span id="current-day-badge" class="bg-teal-100 text-teal-800 text-xs px-2.5 py-0.5 rounded-md font-bold tracking-wide">D1</span>
+          <span>時程表</span>
+        </h2>
+        <span id="total-items-badge" class="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0 個事項</span>
+      </div>
+    </div>
+
+    <!-- 行程軸列表容器 -->
+    <div id="itinerary-list" class="space-y-4"></div>
+
+    <!-- 空白提示 -->
+    <div id="empty-state" class="hidden text-center py-16 px-4 bg-white rounded-2xl border border-dashed border-slate-200">
+      <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mx-auto mb-3">
+        <i class="ph ph-calendar-plus text-2xl"></i>
+      </div>
+      <h3 class="text-sm font-semibold text-slate-700">這天還沒有排入任何行程</h3>
+      <p class="text-xs text-slate-600 mt-1 mb-4">點擊下方按鈕開始安排您的第一筆行程</p>
+      <button onclick="openModalForNew()" class="owner-only px-4 py-2 bg-teal-600 text-white text-xs sm:text-sm rounded-lg hover:bg-teal-700 font-medium inline-flex items-center gap-1.5 shadow-sm">
+        <i class="ph ph-plus"></i> 新增行程項目
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="mt-auto py-6 text-center text-xs text-slate-400 border-t border-slate-100">
+    <p>© 旅程規劃</p>
+  </footer>
+
+  <!-- 新增 / 編輯行程 Modal 彈窗 -->
+  <div id="item-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-150 overflow-hidden transform scale-95 transition-transform duration-200" id="modal-card">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 id="modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-calendar-plus text-teal-600 text-lg"></i>
+          <span>新增行程事項</span>
+        </h3>
+        <button id="close-modal-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 表單內容 -->
+      <form id="item-form" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="edit-item-id">
+
+        <!-- 時間（手動輸入 24 小時制） -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">時間</label>
+          <div class="grid grid-cols-2 gap-3 items-center">
+            <div class="relative flex items-center">
+              <span class="absolute left-3 text-slate-400 text-sm"><i class="ph ph-clock"></i></span>
+              <input type="text" id="start-time-input" required maxlength="5" placeholder="9:00" class="w-full pl-9 pr-3 py-2 text-sm font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-600">至</span>
+              <div class="relative flex-1 flex items-center">
+                <span class="absolute left-3 text-slate-400 text-sm"><i class="ph ph-clock-afternoon"></i></span>
+                <input type="text" id="end-time-input" required maxlength="5" placeholder="10:30" class="w-full pl-9 pr-3 py-2 text-sm font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 事項名稱 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">活動 / 事項名稱</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-slate-600 text-sm"><i class="ph ph-notepad"></i></span>
+            <input type="text" id="activity-title" required placeholder="例如：參觀特展" class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+          </div>
+        </div>
+
+        <!-- 地點 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">地點</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-slate-600 text-sm"><i class="ph ph-map-pin"></i></span>
+            <input type="text" id="activity-location" required placeholder="例如：美術館" class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+          </div>
+        </div>
+
+        <!-- 交通方式選擇（下拉式選單） -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">前往交通方式</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-teal-600 text-base" id="transport-select-icon">
+              <i class="ph ph-person-simple-walk"></i>
+            </span>
+            <select id="transport-select" class="w-full pl-9 pr-8 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none font-medium text-slate-700 cursor-pointer">
+              <option value="airplane">飛機</option>
+              <option value="ship">輪船</option>
+              <option value="hsr">高鐵</option>
+              <option value="tra">臺鐵</option>
+              <option value="mrt">捷運</option>
+              <option value="lrt">輕軌</option>
+              <option value="coach">客運</option>
+              <option value="bus">公車</option>
+              <option value="car">汽車</option>
+              <option value="scooter">機車</option>
+              <option value="bicycle">腳踏車</option>
+              <option value="walk" selected>步行</option>
+              <option value="other">其他</option>
+            </select>
+            <span class="absolute right-3 top-2.5 text-slate-400 pointer-events-none text-sm">
+              <i class="ph ph-caret-down"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- 飛機專屬欄位 -->
+        <div id="airplane-details-field" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 transition-all">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2.5">
+            <i class="ph ph-airplane-tilt text-sky-600 text-sm"></i>
+            <span>航班詳細資訊</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">航廈</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-buildings"></i></span>
+                <input type="text" id="flight-terminal" placeholder="例如：T1 / 第二航廈" class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">航空公司</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-airplane"></i></span>
+                <input type="text" id="flight-airline" placeholder="例如：長榮航空 / 星宇航空" class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 輪船專屬欄位 -->
+        <div id="ship-details-field" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 transition-all">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2.5">
+            <i class="ph ph-boat text-cyan-600 text-sm"></i>
+            <span>輪船詳細資訊</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">碼頭</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-anchor"></i></span>
+                <input type="text" id="ship-pier" placeholder="例如：東港碼頭" class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">航運公司</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-boat"></i></span>
+                <input type="text" id="ship-company" placeholder="例如：百麗航運" class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 臺鐵 / 高鐵 專屬欄位 -->
+        <div id="train-details-field" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 transition-all">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2.5">
+            <i class="ph ph-ticket text-teal-600 text-sm"></i>
+            <span id="train-details-title">班次詳細資訊</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">車次</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-2.5 text-slate-400 text-xs"><i class="ph ph-hash"></i></span>
+                <input type="number" id="train-number" placeholder="122" class="w-full pl-7 pr-6 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                <span class="absolute right-2 text-xs text-slate-500 font-medium pointer-events-none">次</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">發車時間</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-2.5 text-slate-400 text-xs"><i class="ph ph-clock"></i></span>
+                <input type="text" id="train-depart-input" maxlength="5" placeholder="13:30" class="w-full pl-7 pr-2 py-1.5 text-xs sm:text-sm font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">月臺</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-2.5 text-slate-400 text-xs"><i class="ph ph-signpost"></i></span>
+                <input type="text" id="train-platform" placeholder="2" class="w-full pl-7 pr-10 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                <span class="absolute right-2 text-xs text-slate-500 font-medium pointer-events-none">月臺</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 捷運專屬欄位 -->
+        <div id="mrt-details-field" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 transition-all">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2.5">
+            <i class="ph ph-subway text-teal-600 text-sm"></i>
+            <span>捷運詳細資訊</span>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">線路</label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-path"></i></span>
+              <input type="text" id="mrt-line" placeholder="板南" class="w-full pl-8 pr-8 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              <span class="absolute right-2.5 text-xs text-slate-500 font-medium pointer-events-none">線</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 客運專屬欄位 -->
+        <div id="coach-details-field" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 transition-all">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2.5">
+            <i class="ph ph-van text-amber-600 text-sm"></i>
+            <span>客運詳細資訊</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">月臺</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-signpost"></i></span>
+                <input type="text" id="coach-platform" placeholder="3" class="w-full pl-8 pr-10 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                <span class="absolute right-2.5 text-xs text-slate-500 font-medium pointer-events-none">月臺</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">客運公司</label>
+              <div class="relative flex items-center">
+                <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-buildings"></i></span>
+                <input type="text" id="coach-company" placeholder="例如：國光客運" class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 公車專屬欄位 -->
+        <div id="bus-details-field" class="hidden p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 transition-all">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2.5">
+            <i class="ph ph-bus text-blue-600 text-sm"></i>
+            <span>公車詳細資訊</span>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">線路</label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3 text-slate-400 text-xs"><i class="ph ph-bus"></i></span>
+              <input type="text" id="bus-line" placeholder="例如：中興幹線" class="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- 備註說明 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">備註說明</label>
+          <textarea id="activity-note" rows="2" placeholder="注意事項、票券代碼或隨筆..." class="w-full p-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"></textarea>
+        </div>
+
+        <!-- 操作按鈕列 -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="cancel-modal-btn" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg shadow-sm shadow-teal-200 transition-colors">
+            確認儲存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 帳號管理 / 登入彈窗 -->
+  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-150 overflow-hidden transform scale-95 transition-transform duration-200" id="auth-modal-card">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 id="auth-modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-user-circle text-teal-600 text-xl"></i>
+          <span>帳號綁定與同步</span>
+        </h3>
+        <button id="close-auth-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 未登入狀態 -->
+      <div id="auth-logged-out-view" class="p-6 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          綁定 Google 帳號後，您的行程將永久備份至雲端，換新手機、登入不同設備隨時無縫同步！
+        </p>
+
+        <!-- Google 一鍵快速登入 -->
+        <button id="google-login-btn" class="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 flex items-center justify-center gap-2.5 shadow-sm transition-all active:scale-95">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>使用 Google 帳號快速登入</span>
+        </button>
+      </div>
+
+      <!-- 已登入狀態 -->
+      <div id="auth-logged-in-view" class="hidden p-6 space-y-4">
+        <div class="flex items-center gap-3 p-3 bg-teal-50/50 rounded-xl border border-teal-150">
+          <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-base overflow-hidden" id="user-avatar-placeholder">
+            U
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="user-display-name" class="text-xs font-bold text-slate-800 truncate">使用者</p>
+            <p id="user-display-email" class="text-[11px] text-slate-500 truncate mt-0.5"></p>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-600 flex items-center gap-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+          <i class="ph ph-cloud-check text-teal-600 text-base"></i>
+          <span>雲端同步運作中，更動將自動跨裝置保存</span>
+        </div>
+
+        <div class="pt-1">
+          <button id="logout-btn" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+            <i class="ph ph-sign-out text-base"></i>
+            <span>登出帳號</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享行程 Modal -->
+  <div id="share-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-150 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-share-network text-teal-600 text-xl"></i>
+          <span>分享行程</span>
+        </h3>
+        <button id="close-share-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 flex-1">
+        <!-- 權限選擇區塊 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-2">權限設定</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="cursor-pointer share-permission-opt">
+              <input type="radio" name="share-permission" value="editable" class="hidden">
+              <div class="p-3 rounded-xl border border-slate-200 bg-white text-center font-medium text-xs sm:text-sm text-slate-700 transition-all hover:bg-slate-50 flex items-center justify-center gap-2">
+                <i class="ph ph-pencil-simple text-base text-teal-600"></i>
+                <span>可讓查看者編輯</span>
+              </div>
+            </label>
+            <label class="cursor-pointer share-permission-opt">
+              <input type="radio" name="share-permission" value="readonly" checked class="hidden">
+              <div class="p-3 rounded-xl border border-teal-500 bg-teal-50/50 text-center font-semibold text-xs sm:text-sm text-teal-800 transition-all ring-2 ring-teal-500/20 flex items-center justify-center gap-2">
+                <i class="ph ph-eye text-base text-teal-600"></i>
+                <span>不可讓查看者編輯</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 勾選要分享的項目 -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-700" id="selected-share-count">已選取 0 項行程</span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="select-all-btn" class="text-xs text-teal-600 hover:text-teal-700 font-medium">全選</button>
+              <span class="text-slate-300">|</span>
+              <button type="button" id="deselect-all-btn" class="text-xs text-slate-500 hover:text-slate-700">清除</button>
+            </div>
+          </div>
+          <div id="share-items-checklist" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <!-- 分享操作區 -->
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-2 justify-end">
+        <button id="copy-text-btn" class="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xs">
+          <i class="ph ph-copy text-base text-slate-600"></i>
+          <span>複製文字清單</span>
+        </button>
+        <button id="copy-link-btn" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm shadow-teal-200">
+          <i class="ph ph-link text-base"></i>
+          <span>複製分享連結</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 檔案管理 Modal (切換行程與自選下載) -->
+  <div id="files-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-150 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-folder-notch-open text-teal-600 text-xl"></i>
+          <span>行程檔案</span>
+        </h3>
+        <button id="close-files-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-200">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 內容區 -->
+      <div class="p-6 overflow-y-auto space-y-5 flex-1">
+        <!-- 切換行程規劃區塊 -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <i class="ph ph-swap text-teal-600 text-sm"></i>
+              <span>切換行程規劃</span>
+            </span>
+            <button id="create-new-trip-btn" class="text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-200 inline-flex items-center gap-1 transition-colors">
+              <i class="ph ph-plus text-xs"></i> 建立新行程
+            </button>
+          </div>
+          <div id="trip-files-list" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- 下載行程規劃區塊 -->
+        <div class="border-t border-slate-100 pt-4">
+          <div class="text-xs font-semibold text-slate-700 mb-2.5 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i class="ph ph-arrows-down-up text-teal-600 text-sm"></i>
+              <span>備份與轉移 (換機必備)</span>
+            </span>
+            <label for="import-json-file" class="cursor-pointer text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-200 inline-flex items-center gap-1 transition-colors">
+              <i class="ph ph-upload-simple text-xs"></i> 匯入備份檔案
+            </label>
+            <input type="file" id="import-json-file" accept=".json" class="hidden">
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-600">
+              <span class="font-medium text-slate-700">當前檔案：<strong id="download-trip-name" class="text-slate-900"></strong></span>
+              <span id="download-trip-stats" class="text-slate-500"></span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <button id="download-txt-btn" class="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-xl text-xs font-medium text-slate-700 inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xs">
+                <i class="ph ph-file-text text-base text-teal-600"></i>
+                <span>下載文字清單 (.txt)</span>
+              </button>
+              <button id="download-json-btn" class="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-xl text-xs font-medium text-slate-700 inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xs">
+                <i class="ph ph-download-simple text-base text-teal-600"></i>
+                <span>下載備份檔案 (.json)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 刪除確認 Modal -->
+  <div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-xs w-full shadow-2xl border border-slate-150 p-5 text-center transform scale-95 transition-transform duration-200" id="delete-modal-card">
+      <div class="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
+        <i class="ph ph-trash text-xl"></i>
+      </div>
+      <h3 class="text-sm font-bold text-slate-800 mb-1">確定要刪除此行程檔案？</h3>
+      <p id="delete-target-title" class="text-xs text-slate-500 mb-4 truncate px-2 font-medium"></p>
+      <div class="flex items-center justify-center gap-2">
+        <button id="cancel-delete-btn" class="flex-1 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">取消</button>
+        <button id="confirm-delete-btn" class="flex-1 px-3 py-2 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm">確認刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 吐司通知提示 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-900/90 text-white text-xs sm:text-sm font-medium rounded-xl shadow-lg backdrop-blur-md opacity-0 translate-y-12 pointer-events-none transition-all duration-300 flex items-center gap-2">
+    <i class="ph ph-check-circle text-teal-400 text-base"></i>
+    <span id="toast-message">操作已完成</span>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      signInWithCustomToken, 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      signOut, 
+      deleteUser,
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /* =========================================================================
+       【Firebase 金鑰填寫區】已帶入您的專案憑證
+       ========================================================================= */
+    const myFirebaseConfig = {
+      apiKey: "AIzaSyDcHCnUdafxBmJdhzWJ59OkrGPIgTK0ARI",
+      authDomain: "lytsengkueixua.firebaseapp.com",
+      projectId: "lytsengkueixua",
+      storageBucket: "lytsengkueixua.firebasestorage.app",
+      messagingSenderId: "914533044812",
+      appId: "1:914533044812:web:98167520e1d1f86e671ae9",
+      measurementId: "G-28MTKG9F0B"
+    };
+
+    let firebaseConfig = myFirebaseConfig;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'trip-planner-app';
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+
+    if (firebaseConfig && firebaseConfig.apiKey) {
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (err) {
+        console.warn("Firebase init error:", err);
+      }
+    }
+
+    // 交通工具定義（含專屬圖示與風格色系）
+    const TRANSPORTS = {
+      airplane: { name: '飛機', icon: 'ph-airplane-tilt', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-150' },
+      ship: { name: '輪船', icon: 'ph-boat', color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-150' },
+      hsr: { name: '高鐵', icon: 'ph-train', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-150' },
+      tra: { name: '臺鐵', icon: 'ph-train-simple', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-150' },
+      mrt: { name: '捷運', icon: 'ph-subway', color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-150' },
+      lrt: { name: '輕軌', icon: 'ph-tram', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-150' },
+      coach: { name: '客運', icon: 'ph-van', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-150' },
+      bus: { name: '公車', icon: 'ph-bus', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-150' },
+      car: { name: '汽車', icon: 'ph-car', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-150' },
+      scooter: { name: '機車', icon: 'ph-moped', color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-150' },
+      bicycle: { name: '腳踏車', icon: 'ph-bicycle', color: 'text-lime-600', bg: 'bg-lime-50', border: 'border-lime-150' },
+      walk: { name: '步行', icon: 'ph-person-simple-walk', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-150' },
+      other: { name: '其他', icon: 'ph-dots-three-circle', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' }
+    };
+
+    // 預設純淨行程資料
+    const initialTripData = {
+      tripId: 'trip_' + Math.random().toString(36).substring(2, 9),
+      creatorId: '',
+      title: "",
+      days: {
+        "1": []
+      }
+    };
+
+    // 應用狀態
+    const appState = {
+      activeDay: "1",
+      data: initialTripData,
+      canEdit: true,
+      isCreator: true,
+      deviceId: ''
+    };
+
+    function getOrCreateDeviceId() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        let id = store ? store.getItem('TRIP_DEVICE_ID') : null;
+        if (!id) {
+          id = 'dev_' + Math.random().toString(36).substring(2, 11);
+          if (store) store.setItem('TRIP_DEVICE_ID', id);
+        }
+        return id;
+      } catch (e) {
+        return 'dev_' + Math.random().toString(36).substring(2, 11);
+      }
+    }
+
+    function parseUrlParams() {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      return {
+        tripId: params.get('trip'),
+        mode: params.get('mode') || 'readonly'
+      };
+    }
+
+    // 格式化車次顯示
+    function formatTrainNum(val) {
+      if (!val) return '';
+      const clean = String(val).replace(/次/g, '').trim();
+      return clean ? `${clean}次` : '';
+    }
+
+    // 格式化月臺顯示（自動補上「月臺」二字）
+    function formatPlatform(val) {
+      if (!val) return '';
+      const clean = String(val).replace(/月臺/g, '').trim();
+      return clean ? `${clean}月臺` : '';
+    }
+
+    // 格式化捷運線路顯示（自動補上「線」字）
+    function formatMrtLine(val) {
+      if (!val) return '';
+      const clean = String(val).replace(/線/g, '').trim();
+      return clean ? `${clean}線` : '';
+    }
+
+    // 格式化與驗證手動輸入的 24 小時制時間
+    function normalizeTimeInput(val) {
+      if (!val) return '';
+      let clean = val.trim().replace(/：/g, ':');
+      if (/^\d{3,4}$/.test(clean)) {
+        if (clean.length === 3) {
+          clean = `${clean.slice(0, 1)}:${clean.slice(1, 3)}`;
+        } else {
+          clean = `${clean.slice(0, 2)}:${clean.slice(2, 4)}`;
+        }
+      }
+      const match = clean.match(/^(\d{1,2}):(\d{1,2})$/);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2], 10);
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+          return `${h}:${String(m).padStart(2, '0')}`;
+        }
+      }
+      return clean;
+    }
+
+    function setupTimeInputAutoFormat(inputEl) {
+      if (!inputEl) return;
+      inputEl.addEventListener('blur', () => {
+        if (inputEl.value) {
+          inputEl.value = normalizeTimeInput(inputEl.value);
+        }
+      });
+    }
+
+    function timeToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':');
+      if (parts.length < 2) return 0;
+      const h = parseInt(parts[0], 10) || 0;
+      const m = parseInt(parts[1], 10) || 0;
+      return h * 60 + m;
+    }
+
+    function getStoredTripRegistry() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (!store) return [];
+        const reg = store.getItem('TRIP_REGISTRY');
+        let parsed = reg ? JSON.parse(reg) : [];
+        const filtered = parsed.filter(item => {
+          const t = item.title || '';
+          return !t.includes('台中知性輕旅行') && !t.includes('臺中知性輕旅行');
+        });
+        if (filtered.length !== parsed.length) {
+          store.setItem('TRIP_REGISTRY', JSON.stringify(filtered));
+        }
+        return filtered;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveTripToRegistry(trip) {
+      if (!trip || !trip.tripId) return;
+      if ((trip.title || '').includes('台中知性輕旅行') || (trip.title || '').includes('臺中知性輕旅行')) return;
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (!store) return;
+        let reg = getStoredTripRegistry();
+        const existingIdx = reg.findIndex(item => item.tripId === trip.tripId);
+        const meta = {
+          tripId: trip.tripId,
+          title: trip.title || '未命名行程',
+          updatedAt: Date.now(),
+          dayCount: Object.keys(trip.days || {}).length,
+          itemCount: Object.values(trip.days || {}).reduce((acc, cur) => acc + (cur ? cur.length : 0), 0)
+        };
+        if (existingIdx !== -1) {
+          reg[existingIdx] = meta;
+        } else {
+          reg.unshift(meta);
+        }
+        store.setItem('TRIP_REGISTRY', JSON.stringify(reg));
+        store.setItem('CURRENT_ACTIVE_TRIP_ID', trip.tripId);
+      } catch (e) {
+        console.warn("Registry save failed", e);
+      }
+    }
+
+    let syncDebounce = null;
+    function triggerAutoSave() {
+      if (!appState.canEdit) return;
+
+      clearTimeout(syncDebounce);
+      syncDebounce = setTimeout(async () => {
+        try {
+          const store = window.localStorage || window.sessionStorage;
+          if (store) {
+            store.setItem('TRIP_DATA_' + appState.data.tripId, JSON.stringify(appState.data));
+            store.setItem('CURRENT_ACTIVE_TRIP_ID', appState.data.tripId);
+            saveTripToRegistry(appState.data);
+          }
+          if (db && currentUser) {
+            const tripRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', appState.data.tripId);
+            await setDoc(tripRef, {
+              ...appState.data,
+              updatedAt: Date.now()
+            }, { merge: true });
+
+            if (!currentUser.isAnonymous) {
+              await saveCurrentTripToUserCloud(currentUser);
+            }
+          }
+        } catch (e) {
+          console.warn("Syncing fallback in memory mode", e);
+        }
+      }, 400);
+    }
+
+    async function syncCloudTripsForUser(user) {
+      if (!db || !user || user.isAnonymous) return;
+      try {
+        const userTripsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'trips');
+        const snap = await getDocs(userTripsCol);
+        let registry = getStoredTripRegistry();
+        const store = window.localStorage || window.sessionStorage;
+
+        snap.forEach(docSnap => {
+          const trip = docSnap.data();
+          if (trip && trip.tripId) {
+            if (store) store.setItem('TRIP_DATA_' + trip.tripId, JSON.stringify(trip));
+            const existingIdx = registry.findIndex(t => t.tripId === trip.tripId);
+            const meta = {
+              tripId: trip.tripId,
+              title: trip.title || '未命名行程',
+              updatedAt: trip.updatedAt || Date.now(),
+              dayCount: Object.keys(trip.days || {}).length,
+              itemCount: Object.values(trip.days || {}).reduce((acc, cur) => acc + (cur ? cur.length : 0), 0)
+            };
+            if (existingIdx !== -1) registry[existingIdx] = meta;
+            else registry.push(meta);
+          }
+        });
+
+        if (store) store.setItem('TRIP_REGISTRY', JSON.stringify(registry));
+        
+        if (registry.length > 0 && !appState.data.title) {
+          const latestTripId = registry[0].tripId;
+          const cached = store ? store.getItem('TRIP_DATA_' + latestTripId) : null;
+          if (cached) {
+            appState.data = JSON.parse(cached);
+            document.getElementById('trip-title-input').value = appState.data.title || '';
+            renderDayTabs();
+            renderTimeline();
+          }
+        }
+      } catch (err) {
+        console.warn("Sync cloud trips error:", err);
+      }
+    }
+
+    async function saveCurrentTripToUserCloud(user) {
+      if (!db || !user || user.isAnonymous) return;
+      try {
+        const userTripDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'trips', appState.data.tripId);
+        await setDoc(userTripDoc, {
+          ...appState.data,
+          updatedAt: Date.now()
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Save user cloud error:", err);
+      }
+    }
+
+    function applyPermissionUI() {
+      const roleBadge = document.getElementById('role-badge');
+      const titleInput = document.getElementById('trip-title-input');
+      const ownerOnlyElements = document.querySelectorAll('.owner-only');
+
+      if (appState.canEdit) {
+        roleBadge.textContent = appState.isCreator ? '規劃者' : '協作者 (可編輯)';
+        roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-teal-50 text-teal-700 border border-teal-200';
+        titleInput.removeAttribute('readonly');
+        ownerOnlyElements.forEach(el => el.classList.remove('hidden'));
+      } else {
+        roleBadge.textContent = '檢視中 (不可編輯)';
+        roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
+        titleInput.setAttribute('readonly', 'true');
+        ownerOnlyElements.forEach(el => el.classList.add('hidden'));
+      }
+    }
+
+    function renderDayTabs() {
+      const dayTabsList = document.getElementById('day-tabs-list');
+      const dayKeys = Object.keys(appState.data.days || {}).sort((a, b) => Number(a) - Number(b));
+      
+      if (dayKeys.length === 0) {
+        appState.data.days["1"] = [];
+        dayKeys.push("1");
+      }
+
+      if (!appState.data.days[appState.activeDay]) {
+        appState.activeDay = dayKeys[0];
+      }
+
+      dayTabsList.innerHTML = dayKeys.map(dayKey => {
+        const isActive = dayKey === appState.activeDay;
+        return `
+          <button onclick="window.__switchDay('${dayKey}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            isActive 
+              ? 'bg-white text-teal-700 shadow-xs' 
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+          }">
+            D${dayKey}
+          </button>
+        `;
+      }).join('');
+    }
+
+    window.__switchDay = function(dayKey) {
+      appState.activeDay = dayKey;
+      renderDayTabs();
+      renderTimeline();
+    };
+
+    function renderTimeline() {
+      const listContainer = document.getElementById('itinerary-list');
+      const emptyState = document.getElementById('empty-state');
+      const items = appState.data.days[appState.activeDay] || [];
+
+      document.getElementById('total-items-badge').textContent = `${items.length} 個事項`;
+      document.getElementById('current-day-badge').textContent = `D${appState.activeDay}`;
+
+      if (items.length === 0) {
+        listContainer.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      items.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+      listContainer.innerHTML = items.map((item) => {
+        const trans = TRANSPORTS[item.transport] || TRANSPORTS.walk;
+        const isTrain = item.transport === 'tra' || item.transport === 'hsr';
+        const hasTrainInfo = isTrain && (item.trainNumber || item.departureTime || item.platform);
+        const isFlight = item.transport === 'airplane' && (item.terminal || item.airline);
+        const isShip = item.transport === 'ship' && (item.pier || item.shippingCompany);
+        const isCoach = item.transport === 'coach' && (item.coachCompany || item.platform);
+        const hasLine = (item.transport === 'mrt' || item.transport === 'bus') && item.lineName;
+
+        return `
+          <div class="timeline-item relative bg-white rounded-2xl p-4 sm:p-5 border border-slate-150 shadow-[0_2px_4px_rgba(0,0,0,0.02)] hover:border-teal-200 transition-all group">
+            <div class="flex items-start gap-3 sm:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-xl ${trans.bg} ${trans.color} flex items-center justify-center text-xl shadow-xs border ${trans.border} flex-shrink-0" title="交通方式：${trans.name}">
+                  <i class="ph ${trans.icon}"></i>
+                </div>
+                <span class="text-[10px] font-medium text-slate-600 mt-1">${trans.name}</span>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 font-mono">
+                    <i class="ph ph-clock text-[12px] text-teal-600"></i>
+                    <span>${item.startTime} - ${item.endTime}</span>
+                  </div>
+
+                  ${hasTrainInfo ? `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${item.transport === 'hsr' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}">
+                      <i class="ph ph-ticket text-[12px]"></i>
+                      ${item.trainNumber ? `<span>${escapeHtml(formatTrainNum(item.trainNumber))}</span>` : ''}
+                      ${item.departureTime ? `<span class="font-mono">${escapeHtml(item.departureTime)} 發車</span>` : ''}
+                      ${item.platform ? `<span>${escapeHtml(item.platform)}</span>` : ''}
+                    </div>
+                  ` : ''}
+
+                  ${isFlight ? `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700 border border-sky-200">
+                      <i class="ph ph-airplane-tilt text-[12px]"></i>
+                      ${item.airline ? `<span>${escapeHtml(item.airline)}</span>` : ''}
+                      ${item.terminal ? `<span>${escapeHtml(item.terminal)}</span>` : ''}
+                    </div>
+                  ` : ''}
+
+                  ${isShip ? `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-200">
+                      <i class="ph ph-boat text-[12px]"></i>
+                      ${item.shippingCompany ? `<span>${escapeHtml(item.shippingCompany)}</span>` : ''}
+                      ${item.pier ? `<span>${escapeHtml(item.pier)}</span>` : ''}
+                    </div>
+                  ` : ''}
+
+                  ${isCoach ? `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                      <i class="ph ph-van text-[12px]"></i>
+                      ${item.coachCompany ? `<span>${escapeHtml(item.coachCompany)}</span>` : ''}
+                      ${item.platform ? `<span>${escapeHtml(item.platform)}</span>` : ''}
+                    </div>
+                  ` : ''}
+
+                  ${hasLine ? `
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${item.transport === 'mrt' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}">
+                      <i class="ph ph-path text-[12px]"></i>
+                      <span>${escapeHtml(item.lineName)}</span>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <h3 class="text-base font-bold text-slate-800 leading-snug group-hover:text-teal-700 transition-colors">
+                  ${escapeHtml(item.title)}
+                </h3>
+
+                <div class="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
+                  <i class="ph ph-map-pin text-rose-500 flex-shrink-0"></i>
+                  <span class="truncate">${escapeHtml(item.location)}</span>
+                </div>
+
+                ${item.note ? `
+                  <div class="mt-2.5 text-xs text-slate-600 bg-slate-50 rounded-lg p-2.5 border border-slate-150/70 flex items-start gap-1.5">
+                    <i class="ph ph-info text-teal-600 mt-0.5 flex-shrink-0"></i>
+                    <p class="leading-relaxed whitespace-pre-line">${escapeHtml(item.note)}</p>
+                  </div>
+                ` : ''}
+              </div>
+
+              ${appState.canEdit ? `
+                <div class="flex sm:flex-col items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onclick="window.__openEdit('${item.id}')" title="編輯事項" class="w-7 h-7 rounded-lg text-slate-600 hover:text-teal-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <i class="ph ph-pencil-simple text-sm"></i>
+                  </button>
+                  <button onclick="window.__deleteItem('${item.id}')" title="刪除事項" class="w-7 h-7 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors">
+                    <i class="ph ph-trash text-sm"></i>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      });
+    }
+
+    const itemModal = document.getElementById('item-modal');
+    const itemForm = document.getElementById('item-form');
+    const trainDetailsField = document.getElementById('train-details-field');
+    const trainDetailsTitle = document.getElementById('train-details-title');
+    const airplaneDetailsField = document.getElementById('airplane-details-field');
+    const shipDetailsField = document.getElementById('ship-details-field');
+    const coachDetailsField = document.getElementById('coach-details-field');
+    const mrtDetailsField = document.getElementById('mrt-details-field');
+    const busDetailsField = document.getElementById('bus-details-field');
+
+    const transportSelect = document.getElementById('transport-select');
+    const transportSelectIcon = document.getElementById('transport-select-icon');
+
+    function toggleTransportExtraFields(transportType) {
+      if (transportType === 'tra' || transportType === 'hsr') {
+        trainDetailsField.classList.remove('hidden');
+        trainDetailsTitle.textContent = transportType === 'hsr' ? '高鐵班次詳細資訊' : '臺鐵班次詳細資訊';
+      } else {
+        trainDetailsField.classList.add('hidden');
+      }
+
+      if (transportType === 'airplane') {
+        airplaneDetailsField.classList.remove('hidden');
+      } else {
+        airplaneDetailsField.classList.add('hidden');
+      }
+
+      if (transportType === 'ship') {
+        shipDetailsField.classList.remove('hidden');
+      } else {
+        shipDetailsField.classList.add('hidden');
+      }
+
+      if (transportType === 'coach') {
+        coachDetailsField.classList.remove('hidden');
+      } else {
+        coachDetailsField.classList.add('hidden');
+      }
+
+      if (transportType === 'mrt') {
+        mrtDetailsField.classList.remove('hidden');
+      } else {
+        mrtDetailsField.classList.add('hidden');
+      }
+
+      if (transportType === 'bus') {
+        busDetailsField.classList.remove('hidden');
+      } else {
+        busDetailsField.classList.add('hidden');
+      }
+    }
+
+    function updateTransportSelectUI(val) {
+      transportSelect.value = val;
+      const tInfo = TRANSPORTS[val] || TRANSPORTS.walk;
+      transportSelectIcon.innerHTML = `<i class="ph ${tInfo.icon}"></i>`;
+      transportSelectIcon.className = `absolute left-3 top-2.5 text-base ${tInfo.color}`;
+      toggleTransportExtraFields(val);
+    }
+
+    transportSelect.addEventListener('change', (e) => {
+      updateTransportSelectUI(e.target.value);
+    });
+
+    function showModal(el) {
+      el.classList.remove('opacity-0', 'pointer-events-none');
+      const card = el.querySelector('div');
+      if (card) card.classList.remove('scale-95');
+    }
+
+    function hideModal(el) {
+      el.classList.add('opacity-0', 'pointer-events-none');
+      const card = el.querySelector('div');
+      if (card) card.classList.add('scale-95');
+    }
+
+    window.openModalForNew = function() {
+      if (!appState.canEdit) return;
+      document.getElementById('modal-title').innerHTML = `<i class="ph ph-calendar-plus text-teal-600 text-lg"></i><span>新增行程事項</span>`;
+      document.getElementById('edit-item-id').value = '';
+      itemForm.reset();
+      
+      const currentList = appState.data.days[appState.activeDay] || [];
+      if (currentList.length > 0) {
+        const last = currentList[currentList.length - 1];
+        document.getElementById('start-time-input').value = normalizeTimeInput(last.endTime);
+        document.getElementById('end-time-input').value = addOneHour(last.endTime);
+      } else {
+        document.getElementById('start-time-input').value = '9:00';
+        document.getElementById('end-time-input').value = '10:30';
+      }
+
+      document.getElementById('train-number').value = '';
+      document.getElementById('train-depart-input').value = '';
+      document.getElementById('train-platform').value = '';
+      document.getElementById('flight-terminal').value = '';
+      document.getElementById('flight-airline').value = '';
+      document.getElementById('ship-pier').value = '';
+      document.getElementById('ship-company').value = '';
+      document.getElementById('coach-platform').value = '';
+      document.getElementById('coach-company').value = '';
+      document.getElementById('mrt-line').value = '';
+      document.getElementById('bus-line').value = '';
+
+      updateTransportSelectUI('walk');
+      showModal(itemModal);
+    };
+
+    window.__openEdit = function(id) {
+      if (!appState.canEdit) return;
+      const items = appState.data.days[appState.activeDay] || [];
+      const item = items.find(it => it.id === id);
+      if (!item) return;
+
+      document.getElementById('modal-title').innerHTML = `<i class="ph ph-pencil-simple text-teal-600 text-lg"></i><span>編輯行程事項</span>`;
+      document.getElementById('edit-item-id').value = item.id;
+      document.getElementById('start-time-input').value = item.startTime || '';
+      document.getElementById('end-time-input').value = item.endTime || '';
+      document.getElementById('activity-title').value = item.title;
+      document.getElementById('activity-location').value = item.location;
+      document.getElementById('activity-note').value = item.note || '';
+      document.getElementById('train-number').value = (item.trainNumber || '').replace(/次/g, '').trim();
+      document.getElementById('train-depart-input').value = item.departureTime || '';
+      document.getElementById('train-platform').value = (item.transport === 'tra' || item.transport === 'hsr') ? (item.platform || '').replace(/月臺/g, '').trim() : '';
+      document.getElementById('flight-terminal').value = item.terminal || '';
+      document.getElementById('flight-airline').value = item.airline || '';
+      document.getElementById('ship-pier').value = item.pier || '';
+      document.getElementById('ship-company').value = item.shippingCompany || '';
+      document.getElementById('coach-platform').value = item.transport === 'coach' ? (item.platform || '').replace(/月臺/g, '').trim() : '';
+      document.getElementById('coach-company').value = item.coachCompany || '';
+      document.getElementById('mrt-line').value = item.transport === 'mrt' ? (item.lineName || '').replace(/線/g, '').trim() : '';
+      document.getElementById('bus-line').value = item.transport === 'bus' ? (item.lineName || '') : '';
+      
+      updateTransportSelectUI(item.transport || 'walk');
+      showModal(itemModal);
+    };
+
+    window.__deleteItem = function(id) {
+      if (!appState.canEdit) return;
+      const list = appState.data.days[appState.activeDay];
+      if (!list) return;
+      appState.data.days[appState.activeDay] = list.filter(it => it.id !== id);
+      renderTimeline();
+      triggerAutoSave();
+      showToast('已移除該行程');
+    };
+
+    function addOneHour(timeStr) {
+      if (!timeStr) return "10:00";
+      const parts = timeStr.split(':');
+      if (parts.length < 2) return "10:00";
+      const h = parseInt(parts[0], 10);
+      const m = String(parts[1]).padStart(2, '0');
+      const newH = (isNaN(h) ? 9 : (h + 1)) % 24;
+      return `${newH}:${m}`;
+    }
+
+    itemForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!appState.canEdit) return;
+
+      const id = document.getElementById('edit-item-id').value;
+      const startTime = normalizeTimeInput(document.getElementById('start-time-input').value);
+      const endTime = normalizeTimeInput(document.getElementById('end-time-input').value);
+      const title = document.getElementById('activity-title').value.trim();
+      const location = document.getElementById('activity-location').value.trim();
+      const note = document.getElementById('activity-note').value.trim();
+      const transport = transportSelect.value || 'walk';
+
+      const trainNumber = document.getElementById('train-number').value.trim().replace(/次/g, '');
+      const rawDepart = document.getElementById('train-depart-input').value.trim();
+      const departureTime = rawDepart ? normalizeTimeInput(rawDepart) : '';
+      const rawTrainPlatform = document.getElementById('train-platform').value.trim();
+      const trainPlatform = formatPlatform(rawTrainPlatform);
+      const terminal = document.getElementById('flight-terminal').value.trim();
+      const airline = document.getElementById('flight-airline').value.trim();
+      const pier = document.getElementById('ship-pier').value.trim();
+      const shippingCompany = document.getElementById('ship-company').value.trim();
+      const rawCoachPlatform = document.getElementById('coach-platform').value.trim();
+      const coachPlatform = formatPlatform(rawCoachPlatform);
+      const coachCompany = document.getElementById('coach-company').value.trim();
+      const rawMrtLine = document.getElementById('mrt-line').value.trim();
+      const mrtLine = formatMrtLine(rawMrtLine);
+      const busLine = document.getElementById('bus-line').value.trim();
+
+      if (!appState.data.days[appState.activeDay]) {
+        appState.data.days[appState.activeDay] = [];
+      }
+
+      const list = appState.data.days[appState.activeDay];
+
+      const itemPayload = {
+        startTime,
+        endTime,
+        title,
+        location,
+        transport,
+        note,
+        trainNumber: (transport === 'tra' || transport === 'hsr') ? trainNumber : '',
+        departureTime: (transport === 'tra' || transport === 'hsr') ? departureTime : '',
+        platform: (transport === 'tra' || transport === 'hsr') ? trainPlatform : (transport === 'coach' ? coachPlatform : ''),
+        terminal: transport === 'airplane' ? terminal : '',
+        airline: transport === 'airplane' ? airline : '',
+        pier: transport === 'ship' ? pier : '',
+        shippingCompany: transport === 'ship' ? shippingCompany : '',
+        coachCompany: transport === 'coach' ? coachCompany : '',
+        lineName: transport === 'mrt' ? mrtLine : (transport === 'bus' ? busLine : '')
+      };
+
+      if (id) {
+        const idx = list.findIndex(it => it.id === id);
+        if (idx !== -1) {
+          list[idx] = { id, ...itemPayload };
+          showToast('行程已成功更新');
+        }
+      } else {
+        list.push({ id: 'item_' + Date.now(), ...itemPayload });
+        showToast('已新增行程事項');
+      }
+
+      hideModal(itemModal);
+      renderTimeline();
+      triggerAutoSave();
+    });
+
+    const authBtn = document.getElementById('auth-btn');
+    const authBtnIcon = document.getElementById('auth-btn-icon');
+    const authAvatarImg = document.getElementById('auth-avatar-img');
+    const authModal = document.getElementById('auth-modal');
+    const closeAuthBtn = document.getElementById('close-auth-btn');
+    const googleLoginBtn = document.getElementById('google-login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    const authLoggedOutView = document.getElementById('auth-logged-out-view');
+    const authLoggedInView = document.getElementById('auth-logged-in-view');
+    const userDisplayName = document.getElementById('user-display-name');
+    const userDisplayEmail = document.getElementById('user-display-email');
+    const userAvatarPlaceholder = document.getElementById('user-avatar-placeholder');
+    const loginReminderBanner = document.getElementById('login-reminder-banner');
+    const reminderLoginBtn = document.getElementById('reminder-login-btn');
+
+    if (reminderLoginBtn) {
+      reminderLoginBtn.addEventListener('click', () => showModal(authModal));
+    }
+
+    function updateAuthUI(user) {
+      if (user && !user.isAnonymous) {
+        authLoggedOutView.classList.add('hidden');
+        authLoggedInView.classList.remove('hidden');
+
+        // 已登入時隱藏提醒眉批，保持畫面極致清爽
+        if (loginReminderBanner) {
+          loginReminderBanner.classList.add('hidden');
+        }
+
+        const displayName = user.displayName || user.email?.split('@')[0] || '使用者';
+        userDisplayName.textContent = displayName;
+        userDisplayEmail.textContent = user.email || '已綁定 Google 帳號';
+
+        if (user.photoURL) {
+          authAvatarImg.src = user.photoURL;
+          authAvatarImg.classList.remove('hidden');
+          authBtnIcon.classList.add('hidden');
+          userAvatarPlaceholder.innerHTML = `<img src="${user.photoURL}" class="w-full h-full object-cover">`;
+        } else {
+          authAvatarImg.classList.add('hidden');
+          authBtnIcon.classList.remove('hidden');
+          authBtnIcon.className = 'ph ph-user-check text-lg text-emerald-600';
+          userAvatarPlaceholder.textContent = (displayName[0] || 'U').toUpperCase();
+        }
+      } else {
+        authLoggedOutView.classList.remove('hidden');
+        authLoggedInView.classList.add('hidden');
+        authAvatarImg.classList.add('hidden');
+        authBtnIcon.classList.remove('hidden');
+        authBtnIcon.className = 'ph ph-user text-lg text-teal-600';
+
+        // 未登入狀態時顯示提醒眉批
+        if (loginReminderBanner) {
+          loginReminderBanner.classList.remove('hidden');
+        }
+      }
+    }
+
+    authBtn.addEventListener('click', () => showModal(authModal));
+    closeAuthBtn.addEventListener('click', () => hideModal(authModal));
+    authModal.addEventListener('click', (e) => {
+      if (e.target === authModal) hideModal(authModal);
+    });
+
+    googleLoginBtn.addEventListener('click', async () => {
+      if (!auth) {
+        showToast('驗證服務未就緒');
+        return;
+      }
+
+      // 檢查是否在不支援 OAuth 的手機本機檔案 (file:// 或 content://) 環境下執行
+      if (window.location.protocol === 'file:' || window.location.href.startsWith('content:')) {
+        showToast('本機檔案環境無法呼叫 Google 登入，請使用檔案庫的「備份與匯入」功能！');
+        return;
+      }
+
+      try {
+        const provider = new GoogleAuthProvider();
+        const cred = await signInWithPopup(auth, provider);
+        currentUser = cred.user;
+        updateAuthUI(currentUser);
+        await syncCloudTripsForUser(currentUser);
+        await saveCurrentTripToUserCloud(currentUser);
+        hideModal(authModal);
+        showToast('Google 帳號綁定成功！');
+      } catch (err) {
+        console.warn("Google sign-in error:", err);
+        let errMsg = 'Google 登入失敗';
+        if (err?.code === 'auth/unauthorized-domain') {
+          errMsg = '請至 Firebase 後台將當前網域加入「已授權的網域」';
+        } else if (err?.code === 'auth/operation-not-supported-in-this-environment') {
+          errMsg = '此瀏覽環境不支援 Google 彈窗登入，請改用「匯入/匯出備份」';
+        }
+        showToast(errMsg);
+      }
+    });
+
+    // 清理 Firebase 瀏覽器端 Token 與快取輔助函式
+    function clearLocalAuthTokens() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (store) {
+          Object.keys(store).forEach(key => {
+            if (key.startsWith('firebase:authUser:') || key.includes('firebase')) {
+              store.removeItem(key);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Token cleanup error:", e);
+      }
+    }
+
+    // 登出帳號處理
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        if (auth) {
+          await signOut(auth);
+        }
+      } catch (err) {
+        console.warn("Sign out fallback:", err);
+      } finally {
+        clearLocalAuthTokens();
+        currentUser = null;
+        updateAuthUI(null);
+        hideModal(authModal);
+        showToast('已登出帳號');
+      }
+    });
+
+    const shareModal = document.getElementById('share-modal');
+    const shareChecklist = document.getElementById('share-items-checklist');
+    const selectedCountLabel = document.getElementById('selected-share-count');
+
+    function setPermissionOptionStyle(value) {
+      document.querySelectorAll('.share-permission-opt input[type="radio"]').forEach(radio => {
+        radio.checked = (radio.value === value);
+        const parentBox = radio.nextElementSibling;
+        if (radio.checked) {
+          parentBox.className = 'p-3 rounded-xl border border-teal-500 bg-teal-50/50 text-center font-semibold text-xs sm:text-sm text-teal-800 transition-all ring-2 ring-teal-500/20 flex items-center justify-center gap-2';
+        } else {
+          parentBox.className = 'p-3 rounded-xl border border-slate-200 bg-white text-center font-medium text-xs sm:text-sm text-slate-700 transition-all hover:bg-slate-50 flex items-center justify-center gap-2';
+        }
+      });
+    }
+
+    document.querySelectorAll('.share-permission-opt input[type="radio"]').forEach(radio => {
+      radio.addEventListener('change', (e) => setPermissionOptionStyle(e.target.value));
+    });
+
+    function openShareModal() {
+      shareChecklist.innerHTML = '';
+      let hasAny = false;
+
+      Object.keys(appState.data.days).forEach(dayKey => {
+        const dayItems = appState.data.days[dayKey] || [];
+        if (dayItems.length === 0) return;
+        hasAny = true;
+
+        const dayGroup = document.createElement('div');
+        dayGroup.className = 'mb-3';
+        dayGroup.innerHTML = `
+          <div class="text-xs font-semibold text-teal-700 bg-teal-50 px-2 py-1 rounded-md mb-2 flex items-center justify-between">
+            <span>D${dayKey} 行程</span>
+            <span class="text-[11px] font-normal text-slate-600">${dayItems.length} 項</span>
+          </div>
+          <div class="space-y-1.5 pl-1">
+            ${dayItems.map(item => {
+              let extraSummary = [];
+              if (item.trainNumber) extraSummary.push(formatTrainNum(item.trainNumber));
+              if (item.departureTime) extraSummary.push(`${item.departureTime} 發車`);
+              if (item.platform) extraSummary.push(item.platform);
+              if (item.airline) extraSummary.push(item.airline);
+              if (item.terminal) extraSummary.push(item.terminal);
+              if (item.shippingCompany) extraSummary.push(item.shippingCompany);
+              if (item.pier) extraSummary.push(item.pier);
+              if (item.coachCompany) extraSummary.push(item.coachCompany);
+              if (item.lineName) extraSummary.push(item.lineName);
+
+              return `
+              <label class="flex items-start gap-2.5 p-2 rounded-xl border border-slate-150 hover:bg-slate-50 cursor-pointer text-xs transition-colors">
+                <input type="checkbox" name="share-item" value="${item.id}" checked class="mt-0.5 rounded text-teal-600 focus:ring-teal-500 w-4 h-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-slate-600 font-semibold">${item.startTime}-${item.endTime}</span>
+                    <span class="font-bold text-slate-800">${escapeHtml(item.title)}</span>
+                  </div>
+                  <div class="text-slate-600 flex items-center gap-1 mt-0.5 flex-wrap">
+                    <i class="ph ph-map-pin text-rose-500"></i>
+                    <span>${escapeHtml(item.location)}</span>
+                    ${extraSummary.length > 0 ? `<span class="text-teal-700 font-medium ml-1">(${escapeHtml(extraSummary.join(' · '))})</span>` : ''}
+                  </div>
+                </div>
+              </label>
+            `;
+            }).join('')}
+          </div>
+        `;
+        shareChecklist.appendChild(dayGroup);
+      });
+
+      if (!hasAny) {
+        shareChecklist.innerHTML = `<p class="text-center py-6 text-xs text-slate-600">目前尚無任何已安排的行程可供分享</p>`;
+      }
+
+      updateSelectedCount();
+      setPermissionOptionStyle('readonly');
+      showModal(shareModal);
+
+      shareChecklist.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+      });
+    }
+
+    function updateSelectedCount() {
+      const checked = shareChecklist.querySelectorAll('input[name="share-item"]:checked');
+      selectedCountLabel.textContent = `已選取 ${checked.length} 項行程`;
+    }
+
+    document.getElementById('select-all-btn').addEventListener('click', () => {
+      shareChecklist.querySelectorAll('input[name="share-item"]').forEach(cb => cb.checked = true);
+      updateSelectedCount();
+    });
+
+    document.getElementById('deselect-all-btn').addEventListener('click', () => {
+      shareChecklist.querySelectorAll('input[name="share-item"]').forEach(cb => cb.checked = false);
+      updateSelectedCount();
+    });
+
+    function generateShareText() {
+      const checkedIds = Array.from(shareChecklist.querySelectorAll('input[name="share-item"]:checked')).map(cb => cb.value);
+      if (checkedIds.length === 0) return null;
+
+      let text = `✈️ 【${appState.data.title || '行程規劃'}】行程分享\n`;
+      text += `------------------------------------\n`;
+
+      Object.keys(appState.data.days).forEach(dayKey => {
+        const items = (appState.data.days[dayKey] || []).filter(it => checkedIds.includes(it.id));
+        if (items.length > 0) {
+          text += `\n📅 【D${dayKey}】\n`;
+          items.forEach(it => {
+            const trans = TRANSPORTS[it.transport] ? TRANSPORTS[it.transport].name : '步行';
+            text += `• ${it.startTime} - ${it.endTime} | ${it.title}\n`;
+            text += `  📍 地點：${it.location}\n`;
+            text += `  🚗 交通：${trans}`;
+            if (it.trainNumber) text += `（車次：${formatTrainNum(it.trainNumber)}）`;
+            if (it.departureTime) text += `（發車時間：${it.departureTime}）`;
+            if (it.platform) text += `（月臺：${it.platform}）`;
+            if (it.airline) text += `（航空公司：${it.airline}）`;
+            if (it.terminal) text += `（航廈：${it.terminal}）`;
+            if (it.shippingCompany) text += `（航運公司：${it.shippingCompany}）`;
+            if (it.pier) text += `（碼頭：${it.pier}）`;
+            if (it.coachCompany) text += `（客運公司：${it.coachCompany}）`;
+            if (it.lineName) text += `（線路：${it.lineName}）`;
+            text += `\n`;
+            if (it.note) text += `  💡 備註：${it.note}\n`;
+          });
+        }
+      });
+
+      text += `\n------------------------------------\n旅程規劃 ✨`;
+      return text;
+    }
+
+    function copyToClipboardFallback(text, msg) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(msg || '已成功複製至剪貼簿！');
+      } catch (err) {
+        showToast('複製失敗，請手動複製');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    document.getElementById('copy-text-btn').addEventListener('click', () => {
+      const text = generateShareText();
+      if (!text) {
+        showToast('請至少勾選一項要分享的行程');
+        return;
+      }
+      copyToClipboardFallback(text, '已複製文字清單至剪貼簿！');
+      hideModal(shareModal);
+    });
+
+    document.getElementById('copy-link-btn').addEventListener('click', async () => {
+      const permRadio = document.querySelector('input[name="share-permission"]:checked');
+      const mode = permRadio ? permRadio.value : 'readonly';
+
+      if (db && currentUser) {
+        try {
+          const tripRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', appState.data.tripId);
+          await setDoc(tripRef, {
+            ...appState.data,
+            updatedAt: Date.now()
+          }, { merge: true });
+        } catch (e) {
+          console.warn("Saving to cloud failed", e);
+        }
+      }
+
+      const url = `${window.location.origin}${window.location.pathname}#trip=${appState.data.tripId}&mode=${mode}`;
+      copyToClipboardFallback(url, mode === 'editable' ? '已複製分享連結 (允許好友編輯)' : '已複製分享連結 (不可編輯)');
+      hideModal(shareModal);
+    });
+
+    const filesModal = document.getElementById('files-modal');
+    const openFilesBtn = document.getElementById('open-files-btn');
+    const closeFilesBtn = document.getElementById('close-files-btn');
+    const tripFilesList = document.getElementById('trip-files-list');
+    const createNewTripBtn = document.getElementById('create-new-trip-btn');
+    const downloadTxtBtn = document.getElementById('download-txt-btn');
+    const downloadJsonBtn = document.getElementById('download-json-btn');
+    const downloadTripName = document.getElementById('download-trip-name');
+    const downloadTripStats = document.getElementById('download-trip-stats');
+    const importJsonFileInput = document.getElementById('import-json-file');
+
+    // 匯入 .json 備份檔案處理邏輯
+    if (importJsonFileInput) {
+      importJsonFileInput.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (!imported || !imported.days) {
+              showToast('檔案格式不相符');
+              return;
+            }
+
+            // 指派或保留 tripId
+            const newTripId = imported.tripId || ('trip_' + Math.random().toString(36).substring(2, 9));
+            imported.tripId = newTripId;
+            imported.creatorId = appState.deviceId;
+
+            const store = window.localStorage || window.sessionStorage;
+            if (store) {
+              store.setItem('TRIP_DATA_' + newTripId, JSON.stringify(imported));
+              store.setItem('CURRENT_ACTIVE_TRIP_ID', newTripId);
+            }
+
+            saveTripToRegistry(imported);
+
+            appState.data = imported;
+            appState.activeDay = Object.keys(imported.days)[0] || "1";
+            appState.canEdit = true;
+            appState.isCreator = true;
+
+            triggerAutoSave();
+            document.getElementById('trip-title-input').value = appState.data.title || '';
+            applyPermissionUI();
+            renderDayTabs();
+            renderTimeline();
+            renderFilesModalContent();
+
+            showToast(`已成功還原行程：${imported.title || '行程檔案'}`);
+          } catch (err) {
+            console.error(err);
+            showToast('檔案解析失敗，請確認是否為 .json 備份');
+          } finally {
+            importJsonFileInput.value = '';
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function renderFilesModalContent() {
+      saveTripToRegistry(appState.data);
+      const registry = getStoredTripRegistry();
+
+      downloadTripName.textContent = appState.data.title || '未命名行程';
+      const daysCount = Object.keys(appState.data.days || {}).length;
+      const itemsCount = Object.values(appState.data.days || {}).reduce((acc, cur) => acc + (cur ? cur.length : 0), 0);
+      downloadTripStats.textContent = `共 ${daysCount} 天 · ${itemsCount} 個事項`;
+
+      if (registry.length === 0) {
+        tripFilesList.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">目前尚無其他行程檔案</p>`;
+        return;
+      }
+
+      tripFilesList.innerHTML = registry.map(trip => {
+        const isCurrent = trip.tripId === appState.data.tripId;
+        return `
+          <div class="flex items-center justify-between p-3 rounded-xl border transition-all ${
+            isCurrent ? 'border-teal-500 bg-teal-50/40 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'
+          }">
+            <div class="flex-1 min-w-0 pr-3">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-800 truncate">${escapeHtml(trip.title)}</span>
+                ${isCurrent ? '<span class="text-[10px] bg-teal-100 text-teal-800 font-semibold px-1.5 py-0.5 rounded">目前檢視</span>' : ''}
+              </div>
+              <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                <span>${trip.dayCount || 1} 天</span>
+                <span>·</span>
+                <span>${trip.itemCount || 0} 個事項</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              ${isCurrent ? `
+                <button disabled class="text-xs font-medium text-teal-700 bg-teal-100/60 px-2.5 py-1.5 rounded-lg opacity-60 cursor-default">使用中</button>
+              ` : `
+                <button onclick="window.__switchTrip('${trip.tripId}')" class="text-xs font-medium text-slate-700 hover:text-teal-700 bg-slate-100 hover:bg-teal-50 hover:border-teal-200 border border-slate-200 px-2.5 py-1.5 rounded-lg transition-colors">切換</button>
+              `}
+              <button onclick="window.__askDeleteTrip('${trip.tripId}', '${escapeHtml(trip.title)}')" title="刪除檔案" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors">
+                <i class="ph ph-trash text-sm"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openFilesModal() {
+      renderFilesModalContent();
+      showModal(filesModal);
+    }
+
+    googleLoginBtn.addEventListener('click', async () => {
+      if (!auth) {
+        showToast('驗證服務未就緒，請稍後再試');
+        return;
+      }
+      try {
+        const provider = new GoogleAuthProvider();
+        const cred = await signInWithPopup(auth, provider);
+        currentUser = cred.user;
+        updateAuthUI(currentUser);
+        await syncCloudTripsForUser(currentUser);
+        await saveCurrentTripToUserCloud(currentUser);
+        hideModal(authModal);
+        showToast('Google 帳號綁定成功！');
+      } catch (err) {
+        console.warn("Google sign-in error:", err);
+        const errMsg = err?.code === 'auth/unauthorized-domain' 
+          ? '請至 Firebase Console 將當前網域加入授權網域清單' 
+          : 'Google 登入失敗，請確認已在 Firebase 啟用 Google 驗證';
+        showToast(errMsg);
+      }
+    });
+
+    let tripIdPendingDelete = null;
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteTargetTitle = document.getElementById('delete-target-title');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+    window.__askDeleteTrip = function(tripId, title) {
+      tripIdPendingDelete = tripId;
+      deleteTargetTitle.textContent = title || '未命名行程';
+      showModal(deleteModal);
+    };
+
+    cancelDeleteBtn.addEventListener('click', () => {
+      tripIdPendingDelete = null;
+      hideModal(deleteModal);
+    });
+
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (!tripIdPendingDelete) return;
+      const targetId = tripIdPendingDelete;
+      tripIdPendingDelete = null;
+      hideModal(deleteModal);
+
+      const store = window.localStorage || window.sessionStorage;
+      let registry = getStoredTripRegistry();
+      registry = registry.filter(t => t.tripId !== targetId);
+      if (store) {
+        store.setItem('TRIP_REGISTRY', JSON.stringify(registry));
+        store.removeItem('TRIP_DATA_' + targetId);
+      }
+
+      if (appState.data.tripId === targetId) {
+        if (registry.length > 0) {
+          window.__switchTrip(registry[0].tripId);
+        } else {
+          const newTripId = 'trip_' + Math.random().toString(36).substring(2, 9);
+          appState.data = {
+            tripId: newTripId,
+            creatorId: appState.deviceId,
+            title: "",
+            days: { "1": [] }
+          };
+          appState.activeDay = "1";
+          triggerAutoSave();
+          document.getElementById('trip-title-input').value = '';
+          applyPermissionUI();
+          renderDayTabs();
+          renderTimeline();
+        }
+      }
+
+      renderFilesModalContent();
+      showToast('已刪除該行程檔案');
+    });
+
+    deleteModal.addEventListener('click', (e) => {
+      if (e.target === deleteModal) hideModal(deleteModal);
+    });
+
+    window.__switchTrip = async function(targetTripId) {
+      if (targetTripId === appState.data.tripId) return;
+
+      let targetData = null;
+      const store = window.localStorage || window.sessionStorage;
+      if (store) {
+        const cached = store.getItem('TRIP_DATA_' + targetTripId);
+        if (cached) {
+          try { targetData = JSON.parse(cached); } catch(e) {}
+        }
+      }
+
+      if (!targetData && db && currentUser) {
+        try {
+          const tripRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', targetTripId);
+          const snap = await getDoc(tripRef);
+          if (snap.exists()) targetData = snap.data();
+        } catch(e) {}
+      }
+
+      if (targetData) {
+        appState.data = targetData;
+        appState.activeDay = Object.keys(targetData.days || {})[0] || "1";
+        appState.canEdit = true;
+        appState.isCreator = true;
+
+        if (store) {
+          store.setItem('CURRENT_ACTIVE_TRIP_ID', targetData.tripId);
+        }
+
+        history.replaceState(null, '', window.location.pathname);
+        document.getElementById('trip-title-input').value = appState.data.title || '';
+        applyPermissionUI();
+        renderDayTabs();
+        renderTimeline();
+        hideModal(filesModal);
+        showToast(`已切換至：${appState.data.title || '未命名行程'}`);
+      } else {
+        showToast('無法讀取該行程資料');
+      }
+    };
+
+    createNewTripBtn.addEventListener('click', () => {
+      const newTripId = 'trip_' + Math.random().toString(36).substring(2, 9);
+      const newTrip = {
+        tripId: newTripId,
+        creatorId: appState.deviceId,
+        title: "",
+        days: {
+          "1": []
+        }
+      };
+
+      appState.data = newTrip;
+      appState.activeDay = "1";
+      appState.canEdit = true;
+      appState.isCreator = true;
+
+      triggerAutoSave();
+      history.replaceState(null, '', window.location.pathname);
+
+      document.getElementById('trip-title-input').value = '';
+      applyPermissionUI();
+      renderDayTabs();
+      renderTimeline();
+      hideModal(filesModal);
+      showToast('已建立新行程');
+    });
+
+    function triggerDownload(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    downloadTxtBtn.addEventListener('click', () => {
+      let text = `✈️ 【${appState.data.title || '行程規劃'}】完整時程表\n`;
+      text += `產出時間：${new Date().toLocaleString('zh-TW', { hour12: false })}\n`;
+      text += `====================================\n`;
+
+      const dayKeys = Object.keys(appState.data.days || {}).sort((a, b) => Number(a) - Number(b));
+      dayKeys.forEach(dayKey => {
+        const items = appState.data.days[dayKey] || [];
+        text += `\n📅 【D${dayKey}】(共 ${items.length} 個事項)\n`;
+        text += `------------------------------------\n`;
+        if (items.length === 0) {
+          text += `  (本日尚無安排行程)\n`;
+        } else {
+          items.forEach(it => {
+            const trans = TRANSPORTS[it.transport] ? TRANSPORTS[it.transport].name : '步行';
+            text += `• ${it.startTime} - ${it.endTime} | ${it.title}\n`;
+            text += `  📍 地點：${it.location}\n`;
+            text += `  🚗 交通：${trans}`;
+            if (it.trainNumber) text += `（車次：${formatTrainNum(it.trainNumber)}）`;
+            if (it.departureTime) text += `（發車時間：${it.departureTime}）`;
+            if (it.platform) text += `（月臺：${it.platform}）`;
+            if (it.airline) text += `（航空公司：${it.airline}）`;
+            if (it.terminal) text += `（航廈：${it.terminal}）`;
+            if (it.shippingCompany) text += `（航運公司：${it.shippingCompany}）`;
+            if (it.pier) text += `（碼頭：${it.pier}）`;
+            if (it.coachCompany) text += `（客運公司：${it.coachCompany}）`;
+            if (it.lineName) text += `（線路：${it.lineName}）`;
+            text += `\n`;
+            if (it.note) text += `  💡 備註：${it.note}\n`;
+            text += `\n`;
+          });
+        }
+      });
+
+      text += `====================================\n旅程規劃 ✨`;
+      const cleanTitle = (appState.data.title || '行程表').replace(/[\\/:*?"<>|]/g, '_');
+      triggerDownload(text, `${cleanTitle}_行程表.txt`, 'text/plain;charset=utf-8');
+      showToast('已下載文字清單 (.txt)');
+    });
+
+    downloadJsonBtn.addEventListener('click', () => {
+      const jsonStr = JSON.stringify(appState.data, null, 2);
+      const cleanTitle = (appState.data.title || '行程資料').replace(/[\\/:*?"<>|]/g, '_');
+      triggerDownload(jsonStr, `${cleanTitle}_備份.json`, 'application/json;charset=utf-8');
+      showToast('已下載資料備份 (.json)');
+    });
+
+    openFilesBtn.addEventListener('click', openFilesModal);
+    closeFilesBtn.addEventListener('click', () => hideModal(filesModal));
+
+    document.getElementById('add-day-btn').addEventListener('click', () => {
+      if (!appState.canEdit) return;
+      const existingDays = Object.keys(appState.data.days).map(Number);
+      const nextDay = Math.max(...existingDays, 1) + 1;
+      appState.data.days[nextDay] = [];
+      appState.activeDay = String(nextDay);
+      renderDayTabs();
+      renderTimeline();
+      triggerAutoSave();
+      showToast(`已新增 D${nextDay} 行程`);
+    });
+
+    document.getElementById('trip-title-input').addEventListener('input', (e) => {
+      if (!appState.canEdit) return;
+      appState.data.title = e.target.value;
+      triggerAutoSave();
+    });
+
+    document.getElementById('add-item-btn').addEventListener('click', () => {
+      if (appState.canEdit) window.openModalForNew();
+    });
+    document.getElementById('close-modal-btn').addEventListener('click', () => hideModal(itemModal));
+    document.getElementById('cancel-modal-btn').addEventListener('click', () => hideModal(itemModal));
+
+    document.getElementById('open-share-btn').addEventListener('click', openShareModal);
+    document.getElementById('close-share-btn').addEventListener('click', () => hideModal(shareModal));
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-12', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-12', 'pointer-events-none');
+      }, 2500);
+    }
+
+    itemModal.addEventListener('click', (e) => {
+      if (e.target === itemModal) hideModal(itemModal);
+    });
+    shareModal.addEventListener('click', (e) => {
+      if (e.target === shareModal) hideModal(shareModal);
+    });
+    filesModal.addEventListener('click', (e) => {
+      if (e.target === filesModal) hideModal(filesModal);
+    });
+
+    async function startApp() {
+      appState.deviceId = getOrCreateDeviceId();
+      const { tripId, mode } = parseUrlParams();
+
+      if (auth) {
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+          currentUser = auth.currentUser;
+          updateAuthUI(currentUser);
+          
+          onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            updateAuthUI(user);
+            if (user && !user.isAnonymous) {
+              await syncCloudTripsForUser(user);
+            }
+          });
+        } catch (e) {
+          console.warn("Auth initialization fallback:", e);
+        }
+      }
+
+      if (tripId) {
+        let loaded = false;
+        if (db && currentUser) {
+          try {
+            const tripRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', tripId);
+            const snap = await getDoc(tripRef);
+            if (snap.exists()) {
+              appState.data = snap.data();
+              loaded = true;
+            }
+          } catch (e) {
+            console.warn("Cloud load failed", e);
+          }
+        }
+
+        const store = window.localStorage || window.sessionStorage;
+        if (!loaded && store) {
+          const cached = store.getItem('TRIP_DATA_' + tripId);
+          if (cached) {
+            try {
+              appState.data = JSON.parse(cached);
+              loaded = true;
+            } catch (err) {}
+          }
+        }
+
+        const isOriginalCreator = appState.data.creatorId === appState.deviceId;
+        if (isOriginalCreator) {
+          appState.canEdit = true;
+          appState.isCreator = true;
+        } else {
+          appState.canEdit = (mode === 'editable');
+          appState.isCreator = false;
+        }
+      } else {
+        try {
+          const store = window.localStorage || window.sessionStorage;
+          let activeId = store ? store.getItem('CURRENT_ACTIVE_TRIP_ID') : null;
+          let local = null;
+          
+          if (activeId && store) {
+            local = store.getItem('TRIP_DATA_' + activeId);
+          }
+          if (!local && store) {
+            local = store.getItem('TRIP_DATA_LOCAL');
+          }
+
+          if (local) {
+            const parsed = JSON.parse(local);
+            if (!(parsed.title || '').includes('台中知性輕旅行') && !(parsed.title || '').includes('臺中知性輕旅行')) {
+              appState.data = parsed;
+            } else {
+              appState.data.creatorId = appState.deviceId;
+            }
+          } else {
+            appState.data.creatorId = appState.deviceId;
+          }
+        } catch (e) {
+          console.warn("Local restore error", e);
+        }
+
+        appState.canEdit = true;
+        appState.isCreator = true;
+      }
+
+      saveTripToRegistry(appState.data);
+
+      setupTimeInputAutoFormat(document.getElementById('start-time-input'));
+      setupTimeInputAutoFormat(document.getElementById('end-time-input'));
+      setupTimeInputAutoFormat(document.getElementById('train-depart-input'));
+
+      document.getElementById('trip-title-input').value = appState.data.title || '';
+
+      applyPermissionUI();
+      renderDayTabs();
+      renderTimeline();
+    }
+
+    startApp();
+  </script>
+</body>
+</html>
