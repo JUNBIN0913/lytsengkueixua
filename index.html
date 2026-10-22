@@ -985,7 +985,7 @@
       const loginReminderBanner = document.getElementById('login-reminder-banner');
 
       if (appState.canEdit) {
-        roleBadge.textContent = appState.isCreator ? '規劃者' : '協作者 (可編輯)';
+        roleBadge.textContent = appState.isCreator ? '規劃者' : '協作者';
         roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-teal-50 text-teal-700 border border-teal-200';
         titleInput.removeAttribute('readonly');
         ownerOnlyElements.forEach(el => el.classList.remove('hidden'));
@@ -993,7 +993,7 @@
           if (loginReminderBanner) loginReminderBanner.classList.remove('hidden');
         }
       } else {
-        roleBadge.textContent = '檢視中 (不可編輯)';
+        roleBadge.textContent = '檢視中';
         roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
         titleInput.setAttribute('readonly', 'true');
         // 在檢視模式下隱藏包含「檔案」、「登入」、「分享」、「新增」等所有控制按鍵
