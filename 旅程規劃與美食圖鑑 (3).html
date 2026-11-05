@@ -1,0 +1,2586 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>旅程規劃 & 美食圖鑑</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Fonts Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      background-color: #F8FAFC;
+    }
+    .timeline-line::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 24px;
+      bottom: -16px;
+      width: 2px;
+      background: #E2E8F0;
+      z-index: 0;
+    }
+    .timeline-item:last-child .timeline-line::before {
+      display: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body id="app-body" class="text-slate-800 min-h-screen flex flex-col antialiased selection:bg-teal-100 selection:text-teal-900 transition-colors duration-200">
+
+  <!-- 頂部導航列 -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- 可點擊切換的 Logo 按鈕 -->
+        <button type="button" id="header-logo-btn" title="點擊切換 旅程規劃 / 美食圖鑑" class="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-sm shadow-teal-200 cursor-pointer active:scale-95 transition-all">
+          <i id="header-logo-icon" class="ph ph-compass text-xl"></i>
+        </button>
+        <div class="flex items-center gap-2 cursor-pointer select-none" id="header-title-wrap">
+          <h1 id="page-main-title" class="font-bold text-lg text-slate-800 leading-tight">旅程規劃</h1>
+          <span id="role-badge" class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">規劃者</span>
+        </div>
+      </div>
+
+      <!-- 右側快捷控制區 -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- 檔案按鈕 -->
+        <button id="open-files-btn" title="檔案管理" aria-label="檔案管理" class="owner-only inline-flex items-center justify-center w-9 h-9 text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all active:scale-95 shadow-sm">
+          <i id="open-files-icon" class="ph ph-folder text-lg text-teal-600"></i>
+        </button>
+
+        <!-- 分享按鈕 -->
+        <button id="open-share-btn" title="分享" aria-label="分享" class="owner-only inline-flex items-center justify-center w-9 h-9 text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl transition-all active:scale-95 shadow-sm">
+          <i id="open-share-icon" class="ph ph-share-network text-lg"></i>
+        </button>
+
+        <!-- 帳號登入 / 綁定按鈕 -->
+        <button id="auth-btn" title="帳號綁定 / 登入" aria-label="帳號" class="owner-only inline-flex items-center justify-center w-9 h-9 text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all active:scale-95 shadow-sm">
+          <i id="auth-btn-icon" class="ph ph-user text-lg text-teal-600"></i>
+          <img id="auth-avatar-img" class="hidden w-7 h-7 rounded-lg object-cover" alt="Avatar">
+        </button>
+
+        <!-- 新增按鈕 -->
+        <button id="add-item-btn" title="新增" aria-label="新增" class="owner-only inline-flex items-center justify-center w-9 h-9 text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm shadow-teal-200 transition-all active:scale-95">
+          <i class="ph ph-plus text-lg"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= 視圖 1: 旅程規劃主內容區 ================= -->
+  <main id="trip-planner-view" class="max-w-5xl mx-auto px-4 sm:px-6 py-6 w-full flex-1">
+    
+    <!-- 登入提醒眉批 (未登入時溫馨提醒保存行程) -->
+    <div id="login-reminder-banner" class="mb-3.5 px-3.5 py-2.5 rounded-xl bg-teal-50/70 border border-teal-200/60 flex items-center justify-between gap-3 text-xs text-teal-800 transition-all">
+      <div class="flex items-center gap-2 min-w-0">
+        <i class="ph ph-cloud-arrow-up text-base text-teal-600 flex-shrink-0"></i>
+        <span class="truncate">記得登入帳號，以儲存規劃好的行程</span>
+      </div>
+      <button type="button" id="reminder-login-btn" class="flex-shrink-0 px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium text-[11px] shadow-xs transition-colors">
+        立即登入
+      </button>
+    </div>
+
+    <!-- 行程企劃抬頭卡片 -->
+    <section class="bg-white rounded-2xl p-5 sm:p-7 border border-slate-100 shadow-sm mb-6 transition-all hover:shadow-md">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 text-xs font-semibold text-teal-600 tracking-wider uppercase mb-1">
+            <i class="ph ph-map-pin"></i> <span>旅行主題</span>
+          </div>
+          <input type="text" id="trip-title-input" class="w-full text-xl sm:text-2xl font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-teal-500 focus:outline-none transition-colors py-1" placeholder="點擊輸入旅程名稱...">
+        </div>
+        
+        <!-- 天數切換分頁標籤 -->
+        <div id="day-tabs-container" class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start md:self-auto overflow-x-auto max-w-full">
+          <div id="day-tabs-list" class="flex items-center gap-1"></div>
+          <button id="add-day-btn" title="新增天數" class="owner-only px-2 py-1.5 text-slate-600 hover:text-teal-600 rounded-lg hover:bg-white/60 transition-colors">
+            <i class="ph ph-plus text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 行程清單區塊 -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+          <span id="current-day-badge" class="bg-teal-100 text-teal-800 text-xs px-2.5 py-0.5 rounded-md font-bold tracking-wide">D1</span>
+          <span>時程表</span>
+        </h2>
+        <span id="total-items-badge" class="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">0 個事項</span>
+      </div>
+    </div>
+
+    <!-- 行程軸列表容器 -->
+    <div id="itinerary-list" class="space-y-4"></div>
+
+    <!-- 空白提示 -->
+    <div id="empty-state" class="hidden text-center py-16 px-4 bg-white rounded-2xl border border-dashed border-slate-200">
+      <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mx-auto mb-3">
+        <i class="ph ph-calendar-plus text-2xl"></i>
+      </div>
+      <h3 class="text-sm font-semibold text-slate-700">這天還沒有排入任何行程</h3>
+      <p class="text-xs text-slate-600 mt-1 mb-4">點擊下方按鈕開始安排您的第一筆行程</p>
+      <button onclick="openModalForNew()" class="owner-only px-4 py-2 bg-teal-600 text-white text-xs sm:text-sm rounded-lg hover:bg-teal-700 font-medium inline-flex items-center gap-1.5 shadow-sm">
+        <i class="ph ph-plus"></i> 新增行程項目
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ================= 視圖 2: 美食圖鑑主內容區 ================= -->
+  <main id="food-guide-view" class="hidden max-w-5xl mx-auto px-4 sm:px-6 py-6 w-full flex-1">
+    
+    <!-- 美食圖鑑抬頭標題卡片 -->
+    <section class="bg-white rounded-2xl p-5 sm:p-6 border border-orange-100 shadow-sm mb-6 transition-all hover:shadow-md">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 text-xs font-semibold text-amber-600 tracking-wider uppercase mb-1">
+            <i class="ph ph-book-bookmark"></i> <span>圖鑑主題</span>
+            <span id="food-cloud-status-indicator" class="ml-2 text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-normal hidden">
+              <i class="ph ph-cloud-check"></i> Google 雲端雙向同步中
+            </span>
+          </div>
+          <input type="text" id="food-catalog-title-input" class="w-full text-xl sm:text-2xl font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-orange-200 focus:border-amber-500 focus:outline-none transition-colors py-1" placeholder="點擊輸入圖鑑名稱 (例如：12月必吃美食清單)...">
+        </div>
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button type="button" id="copy-food-catalog-btn" class="owner-only px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl inline-flex items-center gap-1.5 transition-all active:scale-95">
+            <i class="ph ph-copy"></i> 複製此圖鑑
+          </button>
+          <button type="button" id="open-food-files-btn" class="owner-only px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl inline-flex items-center gap-1.5 transition-all active:scale-95">
+            <i class="ph ph-folder"></i> 圖鑑清單
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 美食篩選與搜尋欄 -->
+    <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-orange-100 mb-6">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">地區</label>
+          <select id="food-region-filter" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-amber-500 outline-none">
+            <option value="">所有區域</option>
+            <option value="north">北部</option>
+            <option value="central">中部</option>
+            <option value="south">南部</option>
+            <option value="east">東部</option>
+            <option value="islands">離島</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">縣市</label>
+          <select id="food-city-filter" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-amber-500 outline-none">
+            <option value="">所有縣市</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">地域</label>
+          <input type="text" id="food-district-filter" placeholder="例：大安、竹北" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-amber-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">類型</label>
+          <select id="food-type-filter" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-amber-500 outline-none">
+            <option value="">所有美食類型</option>
+            <option value="火鍋">火鍋</option>
+            <option value="燒烤">燒烤</option>
+            <option value="小吃">小吃</option>
+            <option value="麵類">麵類</option>
+            <option value="飯類">飯類</option>
+            <option value="餃類">餃類</option>
+            <option value="速食">速食</option>
+            <option value="甜品">甜品</option>
+            <option value="飲品">飲品</option>
+            <option value="烘焙">烘焙</option>
+            <option value="超商">超商</option>
+            <option value="蔬食">蔬食</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- 關鍵字搜尋與建立按鈕 -->
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="food-search-input" placeholder="直接輸入餐廳名、地域或備註..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-1 focus:ring-amber-500 outline-none">
+        </div>
+        <button type="button" onclick="window.__openFoodModalForNew()" class="owner-only px-3.5 py-2 bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1 active:scale-95 transition-all flex-shrink-0">
+          <i class="ph ph-plus"></i> 新建圖鑑項目
+        </button>
+      </div>
+    </div>
+
+    <!-- 餐廳列表總數與當前頁碼指示 -->
+    <div class="flex items-center justify-between mb-3 px-1 text-xs text-slate-500">
+      <span id="food-list-total-info">共 0 間餐廳</span>
+      <span id="food-list-page-indicator">第 1 頁</span>
+    </div>
+
+    <!-- 美食卡片網格 -->
+    <div id="food-grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+    <!-- 分頁導航列 (每頁 10 間) -->
+    <div id="food-pagination-controls" class="hidden flex items-center justify-center gap-2 mt-8 py-3">
+      <button type="button" id="food-prev-page-btn" class="px-3.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        上一頁
+      </button>
+      <div id="food-pagination-numbers" class="flex items-center gap-1"></div>
+      <button type="button" id="food-next-page-btn" class="px-3.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        下一頁
+      </button>
+    </div>
+
+    <!-- 空白提示 -->
+    <div id="food-empty-state" class="hidden text-center py-16 px-4 bg-white rounded-2xl border border-dashed border-orange-200">
+      <div class="w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mx-auto mb-3">
+        <i class="ph ph-fork-knife text-2xl"></i>
+      </div>
+      <h3 class="text-sm font-semibold text-slate-700">尚未找到符合的美食店家</h3>
+      <p class="text-xs text-slate-500 mt-1 mb-4">可以嘗試調整篩選條件，或新建您的口袋名單！</p>
+      <button type="button" onclick="window.__openFoodModalForNew()" class="owner-only px-4 py-2 bg-gradient-to-tr from-amber-500 to-orange-500 text-white text-xs sm:text-sm rounded-lg hover:from-amber-600 hover:to-orange-600 font-medium inline-flex items-center gap-1.5 shadow-sm active:scale-95">
+        <i class="ph ph-plus"></i> 新建第一間餐廳
+      </button>
+    </div>
+  </main>
+
+  <footer class="mt-auto py-6 text-center text-xs text-slate-400 border-t border-slate-100">
+    <p>© 旅程規劃 & 美食圖鑑</p>
+  </footer>
+
+  <!-- 新增 / 編輯行程 Modal 彈窗 -->
+  <div id="item-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-150 overflow-hidden transform scale-95 transition-transform duration-200" id="modal-card">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 id="modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-calendar-plus text-teal-600 text-lg"></i>
+          <span>新增行程事項</span>
+        </h3>
+        <button id="close-modal-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <form id="item-form" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="edit-item-id">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">時間</label>
+          <div class="grid grid-cols-2 gap-3 items-center">
+            <div class="relative flex items-center">
+              <span class="absolute left-3 text-slate-400 text-sm"><i class="ph ph-clock"></i></span>
+              <input type="text" id="start-time-input" required maxlength="5" placeholder="9:00" class="w-full pl-9 pr-3 py-2 text-sm font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-600">至</span>
+              <div class="relative flex-1 flex items-center">
+                <span class="absolute left-3 text-slate-400 text-sm"><i class="ph ph-clock-afternoon"></i></span>
+                <input type="text" id="end-time-input" required maxlength="5" placeholder="10:30" class="w-full pl-9 pr-3 py-2 text-sm font-mono bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">活動 / 事項名稱</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-slate-600 text-sm"><i class="ph ph-notepad"></i></span>
+            <input type="text" id="activity-title" required placeholder="例如：參觀特展" class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">地點</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-slate-600 text-sm"><i class="ph ph-map-pin"></i></span>
+            <input type="text" id="activity-location" required placeholder="例如：美術館" class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">前往交通方式</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-teal-600 text-base" id="transport-select-icon">
+              <i class="ph ph-person-simple-walk"></i>
+            </span>
+            <select id="transport-select" class="w-full pl-9 pr-8 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none font-medium text-slate-700 cursor-pointer">
+              <option value="airplane">飛機</option>
+              <option value="ship">輪船</option>
+              <option value="hsr">高鐵</option>
+              <option value="tra">臺鐵</option>
+              <option value="mrt">捷運</option>
+              <option value="lrt">輕軌</option>
+              <option value="coach">客運</option>
+              <option value="bus">公車</option>
+              <option value="car">汽車</option>
+              <option value="scooter">機車</option>
+              <option value="bicycle">腳踏車</option>
+              <option value="walk" selected>步行</option>
+              <option value="other">其他</option>
+            </select>
+            <span class="absolute right-3 top-2.5 text-slate-400 pointer-events-none text-sm">
+              <i class="ph ph-caret-down"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- 備註說明 (支援完整長文字與超連結) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">備註說明</label>
+          <textarea id="activity-note" rows="3" placeholder="注意事項、票券代碼或網址連結..." class="w-full p-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"></textarea>
+        </div>
+
+        <!-- 照片上傳 -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-slate-600">照片附件</label>
+            <span class="text-[11px] text-slate-400" id="photo-count-hint">最多 3 張</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2" id="photo-preview-list">
+            <label id="upload-photo-btn" for="item-photo-input" class="cursor-pointer w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 hover:border-teal-400 bg-slate-50 hover:bg-teal-50/40 flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-teal-600 transition-all active:scale-95">
+              <i class="ph ph-camera text-xl"></i>
+              <span class="text-[11px] font-medium">上傳照片</span>
+              <input type="file" id="item-photo-input" accept="image/*" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="cancel-modal-btn" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消</button>
+          <button type="submit" class="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg shadow-sm shadow-teal-200 transition-colors">確認儲存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 美食圖鑑新建/編輯 Modal ================= -->
+  <div id="food-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-orange-100 overflow-hidden transform scale-95 transition-transform duration-200" id="food-modal-card">
+      <div class="px-6 py-4 border-b border-orange-100 flex items-center justify-between bg-orange-50/40">
+        <h3 id="food-modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-fork-knife text-orange-600 text-lg"></i>
+          <span id="food-modal-title-text">新建美食圖鑑項目</span>
+        </h3>
+        <button id="close-food-modal-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <form id="food-form" class="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+        <input type="hidden" id="edit-food-id">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">餐廳名稱 *</label>
+          <input type="text" id="food-name" required placeholder="例如：三牛牛肉麵、鼎泰豐" class="w-full text-xs sm:text-sm p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">地區分類</label>
+            <select id="food-region-select" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none">
+              <option value="north">北部</option>
+              <option value="central">中部</option>
+              <option value="south">南部</option>
+              <option value="east">東部</option>
+              <option value="islands">離島</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">縣市分類</label>
+            <select id="food-city-select" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none">
+              <option value="臺北市">臺北市</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">地域</label>
+            <input type="text" id="food-district-input" placeholder="例：大安、左營" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">料理類型</label>
+          <select id="food-type-select" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none">
+            <option value="火鍋">火鍋</option>
+            <option value="燒烤">燒烤</option>
+            <option value="小吃">小吃</option>
+            <option value="麵類">麵類</option>
+            <option value="飯類">飯類</option>
+            <option value="餃類">餃類</option>
+            <option value="速食">速食</option>
+            <option value="甜品">甜品</option>
+            <option value="飲品">飲品</option>
+            <option value="烘焙">烘焙</option>
+            <option value="超商">超商</option>
+            <option value="蔬食">蔬食</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">官網 / 社群連結</label>
+            <input type="url" id="food-web-url" placeholder="https://instagram.com/... 或官網" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none font-mono">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-semibold text-slate-700">Google Map 導航連結</label>
+              <button type="button" id="auto-generate-map-btn" class="text-[11px] text-amber-700 hover:text-amber-800 underline font-medium">依店名自動生成</button>
+            </div>
+            <input type="url" id="food-map-url" placeholder="https://maps.google.com/..." class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">備註說明</label>
+          <textarea id="food-note" rows="3" placeholder="特色招牌菜、低消限制、訂位資訊或網址..." class="w-full text-xs sm:text-sm p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none leading-relaxed resize-y"></textarea>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-semibold text-slate-700">菜單與照片附件</label>
+            <span id="food-photo-count-badge" class="text-[11px] text-slate-400 font-mono">0 / 10 張</span>
+          </div>
+          <div id="food-photo-preview-list" class="flex flex-wrap gap-2 mb-2"></div>
+          <label class="cursor-pointer border border-dashed border-orange-300 hover:border-orange-500 rounded-xl p-3 flex flex-col items-center justify-center text-slate-500 hover:text-orange-600 transition-colors bg-orange-50/30 hover:bg-orange-50/70">
+            <i class="ph ph-camera text-xl mb-0.5 text-orange-500"></i>
+            <span class="text-xs font-medium">選取照片 (最多 10 張，智慧輕量壓縮)</span>
+            <input type="file" id="food-photo-input" accept="image/*" multiple class="hidden">
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" id="cancel-food-modal-btn" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">取消</button>
+          <button type="submit" id="save-food-submit-btn" class="px-5 py-2 text-xs font-semibold text-white bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-sm transition-all active:scale-95 inline-flex items-center gap-1.5">
+            <span>確認儲存</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 照片大圖檢視燈箱 Modal -->
+  <div id="image-lightbox-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <button id="close-lightbox-btn" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-xl transition-colors">
+      <i class="ph ph-x"></i>
+    </button>
+    <img id="lightbox-img" class="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl" alt="放大預覽">
+  </div>
+
+  <!-- 帳號管理 / 登入彈窗 -->
+  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-150 overflow-hidden transform scale-95 transition-transform duration-200" id="auth-modal-card">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 id="auth-modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-user-circle text-teal-600 text-xl"></i>
+          <span>帳號綁定與同步</span>
+        </h3>
+        <button id="close-auth-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div id="auth-logged-out-view" class="p-6 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          登入 Google 帳號後，餐廳與行程將永久獨立儲存於您的私有雲端庫，杜絕遺失！
+        </p>
+        <button id="google-login-btn" class="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 flex items-center justify-center gap-2.5 shadow-sm transition-all active:scale-95">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>使用 Google 帳號登入</span>
+        </button>
+      </div>
+
+      <div id="auth-logged-in-view" class="hidden p-6 space-y-4">
+        <div class="flex items-center gap-3 p-3 bg-teal-50/50 rounded-xl border border-teal-150">
+          <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-base overflow-hidden" id="user-avatar-placeholder">
+            U
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="user-display-name" class="text-xs font-bold text-slate-800 truncate">使用者</p>
+            <p id="user-display-email" class="text-[11px] text-slate-500 truncate mt-0.5"></p>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-600 flex items-center gap-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+          <i class="ph ph-shield-check text-emerald-600 text-base"></i>
+          <span>登入保護生效中：IndexedDB 雙向同步運行中</span>
+        </div>
+
+        <div class="pt-1 flex flex-col gap-2">
+          <button id="force-sync-btn" class="w-full py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+            <i class="ph ph-arrows-clockwise text-base"></i>
+            <span>立即上傳並同步所有本地餐廳至雲端</span>
+          </button>
+          <button id="logout-btn" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+            <i class="ph ph-sign-out text-base"></i>
+            <span>登出帳號</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享 Modal (一律強制唯讀分享) -->
+  <div id="share-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-150 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 id="share-modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-share-network text-teal-600 text-xl" id="share-modal-icon"></i>
+          <span id="share-modal-title-text">分享行程</span>
+        </h3>
+        <button id="close-share-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 flex-1">
+        <div class="p-3.5 rounded-xl border border-teal-500 bg-teal-50/50 flex items-center gap-2.5 text-xs text-teal-900 shadow-xs">
+          <i class="ph ph-lock-key text-xl text-teal-600 flex-shrink-0"></i>
+          <div>
+            <p class="font-bold">安全分享保護生效中</p>
+            <p class="mt-0.5 text-slate-600">產生的分享連結<strong>一律預設為不允許編輯</strong>。任何接收者僅能檢視與檢索，無法修改、刪除或影響您的資料。</p>
+          </div>
+        </div>
+
+        <div id="trip-share-selection-block">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-700" id="selected-share-count">已選取 0 項行程</span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="select-all-btn" class="text-xs text-teal-600 hover:text-teal-700 font-medium">全選</button>
+              <span class="text-slate-300">|</span>
+              <button type="button" id="deselect-all-btn" class="text-xs text-slate-500 hover:text-slate-700">清除</button>
+            </div>
+          </div>
+          <div id="share-items-checklist" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+        </div>
+
+        <div id="food-share-info-block" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1.5">
+          <p class="font-bold text-slate-800 text-sm" id="food-share-title-preview"></p>
+          <p id="food-share-count-preview" class="text-slate-500"></p>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-2 justify-end">
+        <button id="copy-text-btn" class="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xs">
+          <i class="ph ph-copy text-base text-slate-600"></i>
+          <span>複製文字清單</span>
+        </button>
+        <button id="copy-link-btn" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm shadow-teal-200">
+          <i class="ph ph-link text-base"></i>
+          <span>複製唯讀分享連結</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 檔案管理 Modal (含一鍵下載 HTML 完整檔) -->
+  <div id="files-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-150 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 id="files-modal-title" class="font-semibold text-slate-800 text-base flex items-center gap-2">
+          <i class="ph ph-folder-notch-open text-teal-600 text-xl" id="files-modal-icon"></i>
+          <span id="files-modal-header-text">檔案管理</span>
+        </h3>
+        <button id="close-files-btn" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-200">
+          <i class="ph ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 flex-1">
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <i class="ph ph-swap text-teal-600 text-sm" id="files-swap-icon"></i>
+              <span id="files-swap-title">切換檔案</span>
+            </span>
+            <button id="create-new-trip-btn" class="text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-200 inline-flex items-center gap-1 transition-colors">
+              <i class="ph ph-plus text-xs"></i> <span id="create-new-file-label">建立新行程</span>
+            </button>
+          </div>
+          <div id="trip-files-list" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+        </div>
+
+        <div id="trip-backup-section" class="border-t border-slate-100 pt-4">
+          <div class="text-xs font-semibold text-slate-700 mb-2.5 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i class="ph ph-download-simple text-teal-600 text-sm"></i>
+              <span>備份與一鍵下載 HTML</span>
+            </span>
+            <label for="import-json-file" class="cursor-pointer text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-lg border border-teal-200 inline-flex items-center gap-1 transition-colors">
+              <i class="ph ph-upload-simple text-xs"></i> 匯入備份
+            </label>
+            <input type="file" id="import-json-file" accept=".json" class="hidden">
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-600">
+              <span class="font-medium text-slate-700">當前檔案：<strong id="download-trip-name" class="text-slate-900"></strong></span>
+              <span id="download-trip-stats" class="text-slate-500"></span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <button id="download-html-btn" class="px-3.5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
+                <i class="ph ph-file-html text-base"></i>
+                <span>下載完整 HTML 檔</span>
+              </button>
+              <button id="download-json-btn" class="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-xl text-xs font-medium text-slate-700 inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xs">
+                <i class="ph ph-file-code text-base text-teal-600"></i>
+                <span>下載備份資料 (JSON)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 刪除確認 Modal -->
+  <div id="delete-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-white rounded-2xl max-w-xs w-full shadow-2xl border border-slate-150 p-5 text-center transform scale-95 transition-transform duration-200" id="delete-modal-card">
+      <div class="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
+        <i class="ph ph-trash text-xl"></i>
+      </div>
+      <h3 class="text-sm font-bold text-slate-800 mb-1" id="delete-modal-heading">確定要刪除此檔案？</h3>
+      <p id="delete-target-title" class="text-xs text-slate-500 mb-4 truncate px-2 font-medium"></p>
+      <div class="flex items-center justify-center gap-2">
+        <button id="cancel-delete-btn" class="flex-1 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">取消</button>
+        <button id="confirm-delete-btn" class="flex-1 px-3 py-2 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-sm">確認刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 吐司通知提示 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-900/90 text-white text-xs sm:text-sm font-medium rounded-xl shadow-lg backdrop-blur-md opacity-0 translate-y-12 pointer-events-none transition-all duration-300 flex items-center gap-2">
+    <i class="ph ph-check-circle text-teal-400 text-base" id="toast-icon"></i>
+    <span id="toast-message">操作已完成</span>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      setPersistence,
+      browserLocalPersistence,
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      signOut, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      getDoc, 
+      setDoc, 
+      deleteDoc, 
+      collection, 
+      getDocs 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /* =========================================================================
+       Firebase 專案配置憑證
+       ========================================================================= */
+    const myFirebaseConfig = {
+      apiKey: "AIzaSyDcHCnUdafxBmJdhzWJ59OkrGPIgTK0ARI",
+      authDomain: "lytsengkueixua.firebaseapp.com",
+      projectId: "lytsengkueixua",
+      storageBucket: "lytsengkueixua.firebasestorage.app",
+      messagingSenderId: "914533044812",
+      appId: "1:914533044812:web:98167520e1d1f86e671ae9",
+      measurementId: "G-28MTKG9F0B"
+    };
+
+    let firebaseConfig = myFirebaseConfig;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'trip-planner-app';
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+
+    if (firebaseConfig && firebaseConfig.apiKey) {
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        setPersistence(auth, browserLocalPersistence).catch(e => console.warn("Persistence error:", e));
+      } catch (err) {
+        console.warn("Firebase init error:", err);
+      }
+    }
+
+    const TRANSPORTS = {
+      airplane: { name: '飛機', icon: 'ph-airplane-tilt', color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-150' },
+      ship: { name: '輪船', icon: 'ph-boat', color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-150' },
+      hsr: { name: '高鐵', icon: 'ph-train', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-150' },
+      tra: { name: '臺鐵', icon: 'ph-train-simple', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-150' },
+      mrt: { name: '捷運', icon: 'ph-subway', color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-150' },
+      lrt: { name: '輕軌', icon: 'ph-tram', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-150' },
+      coach: { name: '客運', icon: 'ph-van', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-150' },
+      bus: { name: '公車', icon: 'ph-bus', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-150' },
+      car: { name: '汽車', icon: 'ph-car', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-150' },
+      scooter: { name: '機車', icon: 'ph-moped', color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-150' },
+      bicycle: { name: '腳踏車', icon: 'ph-bicycle', color: 'text-lime-600', bg: 'bg-lime-50', border: 'border-lime-150' },
+      walk: { name: '步行', icon: 'ph-person-simple-walk', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-150' },
+      other: { name: '其他', icon: 'ph-dots-three-circle', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' }
+    };
+
+    const initialTripData = {
+      tripId: 'trip_' + Math.random().toString(36).substring(2, 9),
+      creatorId: '',
+      title: "",
+      days: { "1": [] }
+    };
+
+    const initialFoodCatalog = {
+      catalogId: 'default_food_catalog',
+      creatorId: '',
+      title: "我的美食口袋名單",
+      items: [],
+      updatedAt: Date.now()
+    };
+
+    const appState = {
+      currentView: 'trip',
+      activeDay: "1",
+      data: initialTripData,
+      canEdit: true,
+      isCreator: true,
+      deviceId: '',
+      activeFoodCatalog: initialFoodCatalog,
+      foodCurrentPage: 1,
+      foodPageSize: 10,
+      foodCanEdit: true
+    };
+
+    function formatNoteWithLinks(rawText) {
+      if (!rawText) return '';
+      const trimmed = String(rawText).trim();
+      if (!trimmed) return '';
+
+      const lines = trimmed.split('\n');
+      return lines.map(line => {
+        const urlPattern = /((https?:\/\/|www\.)[^\s<]+)/gi;
+        const parts = line.split(urlPattern);
+        let lineHtml = '';
+        for (let i = 0; i < parts.length; i++) {
+          const token = parts[i];
+          if (!token) continue;
+          if (/^(https?:\/\/|www\.)/i.test(token)) {
+            let href = token;
+            if (!/^https?:\/\//i.test(href)) href = 'https://' + href;
+            lineHtml += `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:text-amber-700 underline font-medium break-all inline-flex items-center gap-0.5" onclick="event.stopPropagation()">${escapeHtml(token)}<i class="ph ph-arrow-up-right text-[11px]"></i></a>`;
+          } else {
+            lineHtml += escapeHtml(token);
+          }
+        }
+        return lineHtml;
+      }).join('<br>');
+    }
+
+    function getOrCreateDeviceId() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        let id = store ? store.getItem('TRIP_DEVICE_ID') : null;
+        if (!id) {
+          id = 'dev_' + Math.random().toString(36).substring(2, 11);
+          if (store) store.setItem('TRIP_DEVICE_ID', id);
+        }
+        return id;
+      } catch (e) {
+        return 'dev_' + Math.random().toString(36).substring(2, 11);
+      }
+    }
+
+    function parseUrlParams() {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      return {
+        tripId: params.get('trip'),
+        foodCatId: params.get('foodcat'),
+        mode: params.get('mode') || 'readonly'
+      };
+    }
+
+    function normalizeTimeInput(val) {
+      if (!val) return '';
+      let clean = val.trim().replace(/：/g, ':');
+      if (/^\d{3,4}$/.test(clean)) {
+        clean = (clean.length === 3) ? `${clean.slice(0, 1)}:${clean.slice(1, 3)}` : `${clean.slice(0, 2)}:${clean.slice(2, 4)}`;
+      }
+      const match = clean.match(/^(\d{1,2}):(\d{1,2})$/);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        let m = parseInt(match[2], 10);
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) return `${h}:${String(m).padStart(2, '0')}`;
+      }
+      return clean;
+    }
+
+    function setupTimeInputAutoFormat(inputEl) {
+      if (!inputEl) return;
+      inputEl.addEventListener('blur', () => {
+        if (inputEl.value) inputEl.value = normalizeTimeInput(inputEl.value);
+      });
+    }
+
+    function timeToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':');
+      if (parts.length < 2) return 0;
+      return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+    }
+
+    function getStoredTripRegistry() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (!store) return [];
+        const reg = store.getItem('TRIP_REGISTRY');
+        let parsed = reg ? JSON.parse(reg) : [];
+        return parsed.filter(item => {
+          const t = item.title || '';
+          return !t.includes('台中知性輕旅行') && !t.includes('臺中知性輕旅行');
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function isTripMeaningful(trip) {
+      if (!trip) return false;
+      return Object.values(trip.days || {}).some(items => Array.isArray(items) && items.length > 0);
+    }
+
+    function saveTripToRegistry(trip) {
+      if (!trip || !trip.tripId || !isTripMeaningful(trip)) return;
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (!store) return;
+        let reg = getStoredTripRegistry();
+        const existingIdx = reg.findIndex(item => item.tripId === trip.tripId);
+        const meta = {
+          tripId: trip.tripId,
+          title: (trip.title || '').trim() || '未命名行程',
+          updatedAt: Date.now(),
+          dayCount: Object.keys(trip.days || {}).length,
+          itemCount: Object.values(trip.days || {}).reduce((acc, cur) => acc + (cur ? cur.length : 0), 0)
+        };
+        if (existingIdx !== -1) reg[existingIdx] = meta;
+        else reg.unshift(meta);
+        store.setItem('TRIP_REGISTRY', JSON.stringify(reg));
+        store.setItem('CURRENT_ACTIVE_TRIP_ID', trip.tripId);
+      } catch (e) {
+        console.warn("Registry save failed", e);
+      }
+    }
+
+    let syncDebounce = null;
+    let titleSaveDebounce = null;
+
+    function triggerAutoSave() {
+      if (!appState.canEdit) return;
+      const hasContent = isTripMeaningful(appState.data);
+      const isLoggedInUser = currentUser && !currentUser.isAnonymous;
+
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (store && hasContent) {
+          store.setItem('TRIP_DATA_' + appState.data.tripId, JSON.stringify(appState.data));
+          store.setItem('CURRENT_ACTIVE_TRIP_ID', appState.data.tripId);
+          if (!isLoggedInUser) saveTripToRegistry(appState.data);
+        }
+      } catch (e) {
+        console.warn("Local storage write error:", e);
+      }
+
+      if (!hasContent) return;
+
+      clearTimeout(syncDebounce);
+      syncDebounce = setTimeout(async () => {
+        if (!isLoggedInUser || !db || !currentUser) return;
+        try {
+          const userTripDoc = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'trips', appState.data.tripId);
+          await setDoc(userTripDoc, {
+            ...appState.data,
+            creatorUid: currentUser.uid,
+            updatedAt: Date.now()
+          }, { merge: true });
+        } catch (e) {
+          console.warn("Trip cloud sync error:", e);
+        }
+      }, 500);
+    }
+
+    async function syncCloudTripsForUser(user) {
+      if (!db || !user || user.isAnonymous) return;
+      try {
+        const userTripsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'trips');
+        const snap = await getDocs(userTripsCol);
+        const store = window.localStorage || window.sessionStorage;
+        
+        let cloudTrips = [];
+        snap.forEach(docSnap => {
+          const trip = docSnap.data();
+          if (trip && trip.tripId && isTripMeaningful(trip)) {
+            cloudTrips.push(trip);
+            if (store) store.setItem('TRIP_DATA_' + trip.tripId, JSON.stringify(trip));
+          }
+        });
+
+        cloudTrips.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+        if (cloudTrips.length > 0) {
+          const latestTrip = cloudTrips[0];
+          appState.data = latestTrip;
+          appState.activeDay = Object.keys(latestTrip.days || {})[0] || "1";
+          appState.canEdit = true;
+          appState.isCreator = true;
+
+          if (store) store.setItem('CURRENT_ACTIVE_TRIP_ID', latestTrip.tripId);
+          document.getElementById('trip-title-input').value = appState.data.title || '';
+          applyPermissionUI();
+          renderDayTabs();
+          renderTimeline();
+        }
+      } catch (err) {
+        console.warn("Sync cloud trips error:", err);
+      }
+    }
+
+    function applyPermissionUI() {
+      const roleBadge = document.getElementById('role-badge');
+      const titleInput = document.getElementById('trip-title-input');
+      const foodTitleInput = document.getElementById('food-catalog-title-input');
+      const ownerOnlyElements = document.querySelectorAll('.owner-only');
+      const loginReminderBanner = document.getElementById('login-reminder-banner');
+
+      if (appState.currentView === 'food') {
+        if (appState.foodCanEdit) {
+          roleBadge.textContent = '美食家';
+          roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800';
+          if (foodTitleInput) foodTitleInput.removeAttribute('readonly');
+          ownerOnlyElements.forEach(el => el.classList.remove('hidden'));
+        } else {
+          roleBadge.textContent = '檢視中';
+          roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
+          if (foodTitleInput) foodTitleInput.setAttribute('readonly', 'true');
+          ownerOnlyElements.forEach(el => el.classList.add('hidden'));
+        }
+        if (loginReminderBanner) loginReminderBanner.classList.add('hidden');
+        return;
+      }
+
+      if (appState.canEdit) {
+        roleBadge.textContent = appState.isCreator ? '規劃者' : '協作者';
+        roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-teal-50 text-teal-700 border border-teal-200';
+        titleInput.removeAttribute('readonly');
+        ownerOnlyElements.forEach(el => el.classList.remove('hidden'));
+        if (!currentUser || currentUser.isAnonymous) {
+          if (loginReminderBanner) loginReminderBanner.classList.remove('hidden');
+        }
+      } else {
+        roleBadge.textContent = '檢視中';
+        roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
+        titleInput.setAttribute('readonly', 'true');
+        ownerOnlyElements.forEach(el => el.classList.add('hidden'));
+        if (loginReminderBanner) loginReminderBanner.classList.add('hidden');
+      }
+    }
+
+    function renderDayTabs() {
+      const dayTabsList = document.getElementById('day-tabs-list');
+      const dayKeys = Object.keys(appState.data.days || {}).sort((a, b) => Number(a) - Number(b));
+      
+      if (dayKeys.length === 0) {
+        appState.data.days["1"] = [];
+        dayKeys.push("1");
+      }
+
+      if (!appState.data.days[appState.activeDay]) {
+        appState.activeDay = dayKeys[0];
+      }
+
+      dayTabsList.innerHTML = dayKeys.map(dayKey => {
+        const isActive = dayKey === appState.activeDay;
+        return `
+          <button onclick="window.__switchDay('${dayKey}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            isActive 
+              ? 'bg-white text-teal-700 shadow-xs' 
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+          }">
+            D${dayKey}
+          </button>
+        `;
+      }).join('');
+    }
+
+    window.__switchDay = function(dayKey) {
+      appState.activeDay = dayKey;
+      renderDayTabs();
+      renderTimeline();
+    };
+
+    function renderTimeline() {
+      const listContainer = document.getElementById('itinerary-list');
+      const emptyState = document.getElementById('empty-state');
+      const items = appState.data.days[appState.activeDay] || [];
+
+      document.getElementById('total-items-badge').textContent = `${items.length} 個事項`;
+      document.getElementById('current-day-badge').textContent = `D${appState.activeDay}`;
+
+      if (items.length === 0) {
+        listContainer.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      items.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+      listContainer.innerHTML = items.map((item) => {
+        const trans = TRANSPORTS[item.transport] || TRANSPORTS.walk;
+        return `
+          <div class="timeline-item relative bg-white rounded-2xl p-4 sm:p-5 border border-slate-150 shadow-[0_2px_4px_rgba(0,0,0,0.02)] hover:border-teal-200 transition-all group">
+            <div class="flex items-start gap-3 sm:gap-4">
+              <div class="flex flex-col items-center">
+                <div class="w-10 h-10 rounded-xl ${trans.bg} ${trans.color} flex items-center justify-center text-xl shadow-xs border ${trans.border} flex-shrink-0">
+                  <i class="ph ${trans.icon}"></i>
+                </div>
+                <span class="text-[10px] font-medium text-slate-600 mt-1">${trans.name}</span>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 font-mono">
+                    <i class="ph ph-clock text-[12px] text-teal-600"></i>
+                    <span>${item.startTime} - ${item.endTime}</span>
+                  </div>
+                </div>
+
+                <h3 class="text-base font-bold text-slate-800 leading-snug group-hover:text-teal-700 transition-colors">
+                  ${escapeHtml(item.title)}
+                </h3>
+
+                <div class="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
+                  <i class="ph ph-map-pin text-rose-500 flex-shrink-0"></i>
+                  <span class="truncate">${escapeHtml(item.location)}</span>
+                </div>
+
+                ${item.note ? `
+                  <div class="mt-2 text-xs text-slate-600 bg-slate-50/70 rounded-xl px-3 py-2 border border-slate-150 flex items-start gap-1.5">
+                    <i class="ph ph-info text-teal-600 mt-0.5 flex-shrink-0"></i>
+                    <div class="leading-relaxed break-words flex-1 whitespace-pre-line">${formatNoteWithLinks(item.note)}</div>
+                  </div>
+                ` : ''}
+              </div>
+
+              ${appState.canEdit ? `
+                <div class="flex sm:flex-col items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onclick="window.__openEdit('${item.id}')" title="編輯事項" class="w-7 h-7 rounded-lg text-slate-600 hover:text-teal-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <i class="ph ph-pencil-simple text-sm"></i>
+                  </button>
+                  <button onclick="window.__deleteItem('${item.id}')" title="刪除事項" class="w-7 h-7 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors">
+                    <i class="ph ph-trash text-sm"></i>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      });
+    }
+
+    const itemModal = document.getElementById('item-modal');
+    const itemForm = document.getElementById('item-form');
+    const transportSelect = document.getElementById('transport-select');
+    const itemPhotoInput = document.getElementById('item-photo-input');
+    const photoPreviewList = document.getElementById('photo-preview-list');
+    const uploadPhotoBtn = document.getElementById('upload-photo-btn');
+    const lightboxModal = document.getElementById('image-lightbox-modal');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const closeLightboxBtn = document.getElementById('close-lightbox-btn');
+    let currentItemPhotos = [];
+
+    window.__openLightbox = function(src) {
+      if (!src) return;
+      lightboxImg.src = src;
+      showModal(lightboxModal);
+    };
+
+    closeLightboxBtn?.addEventListener('click', () => hideModal(lightboxModal));
+    lightboxModal?.addEventListener('click', (e) => {
+      if (e.target === lightboxModal) hideModal(lightboxModal);
+    });
+
+    // 智慧平衡壓縮：長寬最大 500px，品質 0.45，單張約 20KB~35KB，絕對不爆庫
+    function compressImageFile(file, maxWidth = 500, quality = 0.45) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderPhotoPreviews() {
+      const existingThumbnails = photoPreviewList.querySelectorAll('.photo-thumb-container');
+      existingThumbnails.forEach(el => el.remove());
+
+      currentItemPhotos.forEach((src, idx) => {
+        const thumbBox = document.createElement('div');
+        thumbBox.className = 'photo-thumb-container relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 group';
+        thumbBox.innerHTML = `
+          <img src="${src}" class="w-full h-full object-cover cursor-pointer" onclick="window.__openLightbox('${src}')" alt="預覽照片">
+          <button type="button" onclick="window.__removePhoto(${idx})" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 hover:bg-rose-600 text-white flex items-center justify-center text-xs transition-colors shadow-xs">
+            <i class="ph ph-x"></i>
+          </button>
+        `;
+        photoPreviewList.insertBefore(thumbBox, uploadPhotoBtn);
+      });
+
+      if (currentItemPhotos.length >= 3) {
+        uploadPhotoBtn.classList.add('hidden');
+      } else {
+        uploadPhotoBtn.classList.remove('hidden');
+      }
+    }
+
+    window.__removePhoto = function(idx) {
+      currentItemPhotos.splice(idx, 1);
+      renderPhotoPreviews();
+    };
+
+    if (itemPhotoInput) {
+      itemPhotoInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          showToast('照片壓縮處理中...');
+          const compressed = await compressImageFile(file, 500, 0.45);
+          currentItemPhotos.push(compressed);
+          renderPhotoPreviews();
+          showToast('照片加入完成');
+        } catch (err) {
+          showToast('照片載入失敗');
+        } finally {
+          itemPhotoInput.value = '';
+        }
+      });
+    }
+
+    function showModal(el) {
+      el.classList.remove('opacity-0', 'pointer-events-none');
+      const card = el.querySelector('div');
+      if (card) card.classList.remove('scale-95');
+    }
+
+    function hideModal(el) {
+      el.classList.add('opacity-0', 'pointer-events-none');
+      const card = el.querySelector('div');
+      if (card) card.classList.add('scale-95');
+    }
+
+    window.openModalForNew = function() {
+      if (!appState.canEdit) return;
+      document.getElementById('modal-title').innerHTML = `<i class="ph ph-calendar-plus text-teal-600 text-lg"></i><span>新增行程事項</span>`;
+      document.getElementById('edit-item-id').value = '';
+      itemForm.reset();
+      currentItemPhotos = [];
+      renderPhotoPreviews();
+      document.getElementById('start-time-input').value = '9:00';
+      document.getElementById('end-time-input').value = '10:30';
+      showModal(itemModal);
+    };
+
+    window.__openEdit = function(id) {
+      if (!appState.canEdit) return;
+      const items = appState.data.days[appState.activeDay] || [];
+      const item = items.find(it => it.id === id);
+      if (!item) return;
+
+      document.getElementById('modal-title').innerHTML = `<i class="ph ph-pencil-simple text-teal-600 text-lg"></i><span>編輯行程事項</span>`;
+      document.getElementById('edit-item-id').value = item.id;
+      document.getElementById('start-time-input').value = item.startTime || '';
+      document.getElementById('end-time-input').value = item.endTime || '';
+      document.getElementById('activity-title').value = item.title;
+      document.getElementById('activity-location').value = item.location;
+      document.getElementById('activity-note').value = item.note || '';
+      currentItemPhotos = item.photos ? [...item.photos] : [];
+      renderPhotoPreviews();
+      showModal(itemModal);
+    };
+
+    window.__deleteItem = function(id) {
+      if (!appState.canEdit) return;
+      const list = appState.data.days[appState.activeDay];
+      if (!list) return;
+      appState.data.days[appState.activeDay] = list.filter(it => it.id !== id);
+      renderTimeline();
+      triggerAutoSave();
+      showToast('已移除該行程事項');
+    };
+
+    itemForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!appState.canEdit) return;
+
+      const id = document.getElementById('edit-item-id').value;
+      const startTime = normalizeTimeInput(document.getElementById('start-time-input').value);
+      const endTime = normalizeTimeInput(document.getElementById('end-time-input').value);
+      const title = document.getElementById('activity-title').value.trim();
+      const location = document.getElementById('activity-location').value.trim();
+      const note = document.getElementById('activity-note').value.trim();
+      const transport = transportSelect.value || 'walk';
+
+      if (!appState.data.days[appState.activeDay]) {
+        appState.data.days[appState.activeDay] = [];
+      }
+
+      const list = appState.data.days[appState.activeDay];
+      const payload = {
+        startTime,
+        endTime,
+        title,
+        location,
+        transport,
+        note,
+        photos: currentItemPhotos || []
+      };
+
+      if (id) {
+        const idx = list.findIndex(it => it.id === id);
+        if (idx !== -1) {
+          list[idx] = { id, ...payload };
+          showToast('行程已更新');
+        }
+      } else {
+        list.push({ id: 'item_' + Date.now(), ...payload });
+        showToast('已新增行程事項');
+      }
+
+      hideModal(itemModal);
+      renderTimeline();
+      triggerAutoSave();
+    });
+
+    /* =========================================================================
+       帳號管理與登入維持 (強固 Local Persistence)
+       ========================================================================= */
+    const authBtn = document.getElementById('auth-btn');
+    const authBtnIcon = document.getElementById('auth-btn-icon');
+    const authAvatarImg = document.getElementById('auth-avatar-img');
+    const authModal = document.getElementById('auth-modal');
+    const closeAuthBtn = document.getElementById('close-auth-btn');
+    const googleLoginBtn = document.getElementById('google-login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const authLoggedOutView = document.getElementById('auth-logged-out-view');
+    const authLoggedInView = document.getElementById('auth-logged-in-view');
+    const userDisplayName = document.getElementById('user-display-name');
+    const userDisplayEmail = document.getElementById('user-display-email');
+    const userAvatarPlaceholder = document.getElementById('user-avatar-placeholder');
+    const loginReminderBanner = document.getElementById('login-reminder-banner');
+    const reminderLoginBtn = document.getElementById('reminder-login-btn');
+    const forceSyncBtn = document.getElementById('force-sync-btn');
+    const foodCloudStatusIndicator = document.getElementById('food-cloud-status-indicator');
+
+    forceSyncBtn?.addEventListener('click', async () => {
+      if (!currentUser || currentUser.isAnonymous) {
+        showToast('請先登入帳號');
+        return;
+      }
+      showToast('正在向 Google 雲端庫備份同步...');
+      await uploadAllLocalFoodsToCloud(currentUser);
+      await syncCloudFoodsSafely(currentUser);
+      showToast('雲端同步已完成！');
+    });
+
+    reminderLoginBtn?.addEventListener('click', () => showModal(authModal));
+
+    function updateAuthUI(user) {
+      if (user && !user.isAnonymous) {
+        authLoggedOutView.classList.add('hidden');
+        authLoggedInView.classList.remove('hidden');
+        foodCloudStatusIndicator?.classList.remove('hidden');
+
+        if (loginReminderBanner) loginReminderBanner.classList.add('hidden');
+
+        const displayName = user.displayName || user.email?.split('@')[0] || '使用者';
+        userDisplayName.textContent = displayName;
+        userDisplayEmail.textContent = user.email || '已登入 Google 帳號';
+
+        if (user.photoURL) {
+          authAvatarImg.src = user.photoURL;
+          authAvatarImg.classList.remove('hidden');
+          authBtnIcon.classList.add('hidden');
+          userAvatarPlaceholder.innerHTML = `<img src="${user.photoURL}" class="w-full h-full object-cover">`;
+        } else {
+          authAvatarImg.classList.add('hidden');
+          authBtnIcon.classList.remove('hidden');
+          authBtnIcon.className = 'ph ph-user-check text-lg text-emerald-600';
+          userAvatarPlaceholder.textContent = (displayName[0] || 'U').toUpperCase();
+        }
+      } else {
+        authLoggedOutView.classList.remove('hidden');
+        authLoggedInView.classList.add('hidden');
+        authAvatarImg.classList.add('hidden');
+        authBtnIcon.classList.remove('hidden');
+        authBtnIcon.className = 'ph ph-user text-lg text-teal-600';
+        foodCloudStatusIndicator?.classList.add('hidden');
+
+        if (loginReminderBanner && appState.currentView === 'trip') {
+          loginReminderBanner.classList.remove('hidden');
+        }
+      }
+    }
+
+    authBtn.addEventListener('click', () => showModal(authModal));
+    closeAuthBtn.addEventListener('click', () => hideModal(authModal));
+    authModal.addEventListener('click', (e) => {
+      if (e.target === authModal) hideModal(authModal);
+    });
+
+    googleLoginBtn.addEventListener('click', async () => {
+      if (!auth) {
+        showToast('驗證服務未就緒，請稍後再試');
+        return;
+      }
+      try {
+        const provider = new GoogleAuthProvider();
+        const cred = await signInWithPopup(auth, provider);
+        currentUser = cred.user;
+        updateAuthUI(currentUser);
+        showToast('Google 帳號登入成功！同步中...');
+        await uploadAllLocalFoodsToCloud(currentUser);
+        await syncCloudFoodsSafely(currentUser);
+        hideModal(authModal);
+        showToast('雲端餐廳與行程已完成同步！');
+      } catch (err) {
+        console.warn("Google sign-in error:", err);
+        showToast('Google 登入失敗，請稍後再試');
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        if (auth) await signOut(auth);
+      } catch (err) {
+        console.warn("Sign out fallback:", err);
+      } finally {
+        currentUser = null;
+        updateAuthUI(null);
+        hideModal(authModal);
+        showToast('已登出帳號');
+      }
+    });
+
+    /* =========================================================================
+       分享行程與美食圖鑑 (強制唯讀)
+       ========================================================================= */
+    const shareModal = document.getElementById('share-modal');
+    const shareModalTitleText = document.getElementById('share-modal-title-text');
+    const shareModalIcon = document.getElementById('share-modal-icon');
+    const tripShareSelectionBlock = document.getElementById('trip-share-selection-block');
+    const foodShareInfoBlock = document.getElementById('food-share-info-block');
+    const foodShareTitlePreview = document.getElementById('food-share-title-preview');
+    const foodShareCountPreview = document.getElementById('food-share-count-preview');
+    const shareChecklist = document.getElementById('share-items-checklist');
+    const selectedCountLabel = document.getElementById('selected-share-count');
+
+    function openShareModal() {
+      const isFood = (appState.currentView === 'food');
+
+      if (isFood) {
+        shareModalTitleText.textContent = '分享美食圖鑑';
+        shareModalIcon.className = 'ph ph-fork-knife text-orange-600 text-xl';
+        tripShareSelectionBlock.classList.add('hidden');
+        foodShareInfoBlock.classList.remove('hidden');
+
+        const cat = appState.activeFoodCatalog;
+        foodShareTitlePreview.textContent = cat.title || '我的美食圖鑑';
+        foodShareCountPreview.textContent = `共收錄 ${(cat.items || []).length} 間店家（唯讀分享連結）`;
+
+        showModal(shareModal);
+        return;
+      }
+
+      shareModalTitleText.textContent = '分享行程';
+      shareModalIcon.className = 'ph ph-share-network text-teal-600 text-xl';
+      tripShareSelectionBlock.classList.remove('hidden');
+      foodShareInfoBlock.classList.add('hidden');
+
+      shareChecklist.innerHTML = '';
+      let hasAny = false;
+
+      Object.keys(appState.data.days).forEach(dayKey => {
+        const dayItems = appState.data.days[dayKey] || [];
+        if (dayItems.length === 0) return;
+        hasAny = true;
+
+        const dayGroup = document.createElement('div');
+        dayGroup.className = 'mb-3';
+        dayGroup.innerHTML = `
+          <div class="text-xs font-semibold text-teal-700 bg-teal-50 px-2 py-1 rounded-md mb-2 flex items-center justify-between">
+            <span>D${dayKey} 行程</span>
+            <span class="text-[11px] font-normal text-slate-600">${dayItems.length} 項</span>
+          </div>
+          <div class="space-y-1.5 pl-1">
+            ${dayItems.map(item => `
+              <label class="flex items-start gap-2.5 p-2 rounded-xl border border-slate-150 hover:bg-slate-50 cursor-pointer text-xs transition-colors">
+                <input type="checkbox" name="share-item" value="${item.id}" checked class="mt-0.5 rounded text-teal-600 focus:ring-teal-500 w-4 h-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-slate-600 font-semibold">${item.startTime}-${item.endTime}</span>
+                    <span class="font-bold text-slate-800">${escapeHtml(item.title)}</span>
+                  </div>
+                  <div class="text-slate-600 flex items-center gap-1 mt-0.5 flex-wrap">
+                    <i class="ph ph-map-pin text-rose-500"></i>
+                    <span>${escapeHtml(item.location)}</span>
+                  </div>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        `;
+        shareChecklist.appendChild(dayGroup);
+      });
+
+      if (!hasAny) {
+        shareChecklist.innerHTML = `<p class="text-center py-6 text-xs text-slate-600">目前尚無任何已安排的行程可供分享</p>`;
+      }
+
+      updateSelectedCount();
+      showModal(shareModal);
+
+      shareChecklist.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+      });
+    }
+
+    function updateSelectedCount() {
+      const checked = shareChecklist.querySelectorAll('input[name="share-item"]:checked');
+      selectedCountLabel.textContent = `已選取 ${checked.length} 項行程`;
+    }
+
+    document.getElementById('select-all-btn').addEventListener('click', () => {
+      shareChecklist.querySelectorAll('input[name="share-item"]').forEach(cb => cb.checked = true);
+      updateSelectedCount();
+    });
+
+    document.getElementById('deselect-all-btn').addEventListener('click', () => {
+      shareChecklist.querySelectorAll('input[name="share-item"]').forEach(cb => cb.checked = false);
+      updateSelectedCount();
+    });
+
+    function generateShareText() {
+      if (appState.currentView === 'food') {
+        const cat = appState.activeFoodCatalog;
+        let text = `🍴 【${cat.title || '美食圖鑑'}】精選口袋名單\n`;
+        text += `------------------------------------\n`;
+        (cat.items || []).forEach((f, i) => {
+          text += `${i + 1}. ${f.name} (${f.type || '美食'})\n`;
+          if (f.city || f.district) text += `   📍 地區：${[f.city, f.district].filter(Boolean).join(' ')}\n`;
+          if (f.mapUrl) text += `   🗺️ 導航：${f.mapUrl}\n`;
+          if (f.webUrl) text += `   🌐 官網：${f.webUrl}\n`;
+          if (f.note) text += `   💡 備註：${f.note}\n`;
+          text += `\n`;
+        });
+        text += `------------------------------------\n美食圖鑑 ✨`;
+        return text;
+      }
+
+      const checkedIds = Array.from(shareChecklist.querySelectorAll('input[name="share-item"]:checked')).map(cb => cb.value);
+      if (checkedIds.length === 0) return null;
+
+      let text = `✈️ 【${appState.data.title || '行程規劃'}】行程分享\n`;
+      text += `------------------------------------\n`;
+      Object.keys(appState.data.days).forEach(dayKey => {
+        const items = (appState.data.days[dayKey] || []).filter(it => checkedIds.includes(it.id));
+        if (items.length > 0) {
+          text += `\n📅 【D${dayKey}】\n`;
+          items.forEach(it => {
+            const trans = TRANSPORTS[it.transport] ? TRANSPORTS[it.transport].name : '步行';
+            text += `• ${it.startTime} - ${it.endTime} | ${it.title}\n`;
+            text += `  📍 地點：${it.location}\n`;
+            text += `  🚗 交通：${trans}\n`;
+            if (it.note) text += `  💡 備註：${it.note}\n`;
+          });
+        }
+      });
+      text += `\n------------------------------------\n旅程規劃 ✨`;
+      return text;
+    }
+
+    function copyToClipboardFallback(text, msg) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(msg || '已成功複製至剪貼簿！');
+      } catch (err) {
+        showToast('複製失敗，請手動複製');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    document.getElementById('copy-text-btn').addEventListener('click', () => {
+      const text = generateShareText();
+      if (!text) {
+        showToast('請至少勾選一項要分享的項目');
+        return;
+      }
+      copyToClipboardFallback(text, '已複製文字清單至剪貼簿！');
+      hideModal(shareModal);
+    });
+
+    document.getElementById('copy-link-btn').addEventListener('click', async () => {
+      const isFood = (appState.currentView === 'food');
+
+      if (isFood) {
+        if (db) {
+          try {
+            const pubFoodRef = doc(db, 'artifacts', appId, 'public', 'data', 'food_catalogs', appState.activeFoodCatalog.catalogId);
+            await setDoc(pubFoodRef, {
+              ...appState.activeFoodCatalog,
+              updatedAt: Date.now()
+            }, { merge: true });
+          } catch(e) {}
+        }
+        const url = `${window.location.origin}${window.location.pathname}#foodcat=${appState.activeFoodCatalog.catalogId}&mode=readonly`;
+        copyToClipboardFallback(url, '已複製美食圖鑑唯讀分享連結！');
+        hideModal(shareModal);
+        return;
+      }
+
+      if (db) {
+        try {
+          const tripRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', appState.data.tripId);
+          await setDoc(tripRef, {
+            ...appState.data,
+            updatedAt: Date.now()
+          }, { merge: true });
+        } catch (e) {}
+      }
+
+      const url = `${window.location.origin}${window.location.pathname}#trip=${appState.data.tripId}&mode=readonly`;
+      copyToClipboardFallback(url, '已複製行程唯讀分享連結！');
+      hideModal(shareModal);
+    });
+
+    /* =========================================================================
+       檔案管理與一鍵下載 HTML 完整檔
+       ========================================================================= */
+    const filesModal = document.getElementById('files-modal');
+    const openFilesBtn = document.getElementById('open-files-btn');
+    const closeFilesBtn = document.getElementById('close-files-btn');
+    const tripFilesList = document.getElementById('trip-files-list');
+    const createNewTripBtn = document.getElementById('create-new-trip-btn');
+    const downloadHtmlBtn = document.getElementById('download-html-btn');
+    const downloadJsonBtn = document.getElementById('download-json-btn');
+    const downloadTripName = document.getElementById('download-trip-name');
+    const downloadTripStats = document.getElementById('download-trip-stats');
+
+    function renderFilesModalContent() {
+      const isFood = (appState.currentView === 'food');
+      if (isFood) {
+        document.getElementById('files-modal-header-text').textContent = '美食圖鑑檔案';
+        document.getElementById('trip-backup-section').classList.remove('hidden');
+        downloadTripName.textContent = appState.activeFoodCatalog.title || '美食圖鑑';
+        downloadTripStats.textContent = `共 ${(appState.activeFoodCatalog.items || []).length} 間餐廳`;
+
+        tripFilesList.innerHTML = `
+          <div class="p-3 rounded-xl border border-amber-500 bg-amber-50/50 flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold text-slate-800">${escapeHtml(appState.activeFoodCatalog.title || '美食圖鑑')}</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">共收錄 ${(appState.activeFoodCatalog.items || []).length} 間餐廳 (已永續保存)</p>
+            </div>
+            <span class="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-lg">使用中</span>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById('files-modal-header-text').textContent = '行程檔案';
+      document.getElementById('trip-backup-section').classList.remove('hidden');
+      const tripList = getStoredTripRegistry();
+      const currentActiveTitle = (appState.data.title || '').trim();
+      downloadTripName.textContent = currentActiveTitle || '未命名行程';
+      const daysCount = Object.keys(appState.data.days || {}).length;
+      const itemsCount = Object.values(appState.data.days || {}).reduce((acc, cur) => acc + (cur ? cur.length : 0), 0);
+      downloadTripStats.textContent = `共 ${daysCount} 天 · ${itemsCount} 個事項`;
+
+      if (tripList.length === 0) {
+        tripFilesList.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">目前尚無已儲存的行程檔案</p>`;
+        return;
+      }
+
+      tripFilesList.innerHTML = tripList.map(trip => {
+        const isCurrent = trip.tripId === appState.data.tripId;
+        const displayTitle = isCurrent && currentActiveTitle ? currentActiveTitle : (trip.title || '未命名行程');
+        return `
+          <div class="flex items-center justify-between p-3 rounded-xl border transition-all ${
+            isCurrent ? 'border-teal-500 bg-teal-50/40 shadow-xs' : 'border-slate-200 bg-white hover:bg-slate-50'
+          }">
+            <div class="flex-1 min-w-0 pr-3">
+              <span class="text-xs font-bold text-slate-800 truncate">${escapeHtml(displayTitle)}</span>
+              <div class="text-[11px] text-slate-500 mt-0.5">
+                <span>${trip.dayCount || 1} 天 · ${trip.itemCount || 0} 個事項</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              ${isCurrent ? `<span class="text-xs font-medium text-teal-700 bg-teal-100 px-2.5 py-1.5 rounded-lg">使用中</span>` : `
+                <button onclick="window.__switchTrip('${trip.tripId}')" class="text-xs font-medium text-slate-700 hover:text-teal-700 bg-slate-100 hover:bg-teal-50 border border-slate-200 px-2.5 py-1.5 rounded-lg transition-colors">切換</button>
+              `}
+              <button onclick="window.__askDeleteTrip('${trip.tripId}', '${escapeHtml(displayTitle)}')" title="刪除檔案" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors">
+                <i class="ph ph-trash text-sm"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    openFilesBtn.addEventListener('click', () => {
+      renderFilesModalContent();
+      showModal(filesModal);
+    });
+    closeFilesBtn.addEventListener('click', () => hideModal(filesModal));
+
+    function triggerDownload(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // 真正一鍵下載 HTML 完整檔 (不是 txt)
+    downloadHtmlBtn.addEventListener('click', () => {
+      const fullHtmlDoc = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const cleanTitle = (appState.currentView === 'food' ? (appState.activeFoodCatalog.title || '美食圖鑑') : (appState.data.title || '旅程規劃')).replace(/[\\/:*?"<>|]/g, '_');
+      triggerDownload(fullHtmlDoc, `${cleanTitle}.html`, 'text/html;charset=utf-8');
+      showToast('已下載完整 HTML 檔！');
+    });
+
+    downloadJsonBtn.addEventListener('click', () => {
+      const isFood = (appState.currentView === 'food');
+      const dataToSave = isFood ? appState.activeFoodCatalog : appState.data;
+      const jsonStr = JSON.stringify(dataToSave, null, 2);
+      const cleanTitle = (isFood ? (appState.activeFoodCatalog.title || '美食圖鑑') : (appState.data.title || '行程資料')).replace(/[\\/:*?"<>|]/g, '_');
+      triggerDownload(jsonStr, `${cleanTitle}_備份.json`, 'application/json;charset=utf-8');
+      showToast('已下載 JSON 備份！');
+    });
+
+    document.getElementById('add-day-btn').addEventListener('click', () => {
+      if (!appState.canEdit) return;
+      const existingDays = Object.keys(appState.data.days).map(Number);
+      const nextDay = Math.max(...existingDays, 1) + 1;
+      appState.data.days[nextDay] = [];
+      appState.activeDay = String(nextDay);
+      renderDayTabs();
+      renderTimeline();
+    });
+
+    document.getElementById('trip-title-input').addEventListener('input', (e) => {
+      if (!appState.canEdit) return;
+      appState.data.title = e.target.value;
+      if (isTripMeaningful(appState.data)) {
+        clearTimeout(titleSaveDebounce);
+        titleSaveDebounce = setTimeout(() => triggerAutoSave(), 400);
+      }
+    });
+
+    document.getElementById('close-modal-btn').addEventListener('click', () => hideModal(itemModal));
+    document.getElementById('cancel-modal-btn').addEventListener('click', () => hideModal(itemModal));
+    document.getElementById('open-share-btn').addEventListener('click', openShareModal);
+    document.getElementById('close-share-btn').addEventListener('click', () => hideModal(shareModal));
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+      toastMsg.textContent = msg;
+
+      if (appState.currentView === 'food') {
+        toastIcon.className = 'ph ph-check-circle text-amber-400 text-base';
+      } else {
+        toastIcon.className = 'ph ph-check-circle text-teal-400 text-base';
+      }
+
+      toast.classList.remove('opacity-0', 'translate-y-12', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-12', 'pointer-events-none');
+      }, 2500);
+    }
+
+    itemModal.addEventListener('click', (e) => {
+      if (e.target === itemModal) hideModal(itemModal);
+    });
+    shareModal.addEventListener('click', (e) => {
+      if (e.target === shareModal) hideModal(shareModal);
+    });
+    filesModal.addEventListener('click', (e) => {
+      if (e.target === filesModal) hideModal(filesModal);
+    });
+
+    /* =========================================================================
+       雙向切換模式 (旅程規劃 🧭 ⇄ 美食圖鑑 🍴)
+       ========================================================================= */
+    const headerLogoBtn = document.getElementById('header-logo-btn');
+    const headerLogoIcon = document.getElementById('header-logo-icon');
+    const headerTitleWrap = document.getElementById('header-title-wrap');
+    const pageMainTitle = document.getElementById('page-main-title');
+    const roleBadge = document.getElementById('role-badge');
+    const addItemBtn = document.getElementById('add-item-btn');
+    const openFilesIcon = document.getElementById('open-files-icon');
+    const openShareIcon = document.getElementById('open-share-icon');
+    const appBody = document.getElementById('app-body');
+    const tripPlannerView = document.getElementById('trip-planner-view');
+    const foodGuideView = document.getElementById('food-guide-view');
+
+    function switchView(targetView) {
+      const nextView = targetView || (appState.currentView === 'trip' ? 'food' : 'trip');
+      appState.currentView = nextView;
+
+      if (nextView === 'food') {
+        tripPlannerView.classList.add('hidden');
+        foodGuideView.classList.remove('hidden');
+
+        headerLogoBtn.className = 'w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-sm shadow-orange-200 cursor-pointer active:scale-95 transition-all';
+        headerLogoIcon.className = 'ph ph-fork-knife text-xl';
+        pageMainTitle.textContent = '美食圖鑑';
+
+        if (appState.foodCanEdit) {
+          roleBadge.textContent = '美食家';
+          roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800';
+          addItemBtn.classList.remove('hidden');
+          openFilesBtn.classList.remove('hidden');
+          document.getElementById('open-share-btn').classList.remove('hidden');
+        } else {
+          roleBadge.textContent = '檢視中';
+          roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500';
+          addItemBtn.classList.add('hidden');
+          openFilesBtn.classList.add('hidden');
+          document.getElementById('open-share-btn').classList.add('hidden');
+        }
+
+        addItemBtn.className = 'owner-only inline-flex items-center justify-center w-9 h-9 text-white bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-sm shadow-orange-200 transition-all active:scale-95';
+        addItemBtn.title = '新建美食圖鑑項目';
+
+        openFilesIcon.className = 'ph ph-folder text-lg text-amber-600';
+        if (openShareIcon) openShareIcon.className = 'ph ph-share-network text-lg text-amber-600';
+        appBody.className = 'text-slate-800 min-h-screen flex flex-col antialiased bg-[#FFFDF9] selection:bg-amber-100 selection:text-amber-900 transition-colors duration-200';
+
+        renderFoodCards();
+        showToast('🍴 已切換至「美食圖鑑」');
+      } else {
+        foodGuideView.classList.add('hidden');
+        tripPlannerView.classList.remove('hidden');
+
+        headerLogoBtn.className = 'w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-sm shadow-teal-200 cursor-pointer active:scale-95 transition-all';
+        headerLogoIcon.className = 'ph ph-compass text-xl';
+        pageMainTitle.textContent = '旅程規劃';
+        roleBadge.textContent = appState.canEdit ? (appState.isCreator ? '規劃者' : '協作者') : '檢視中';
+        roleBadge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600';
+
+        addItemBtn.className = 'owner-only inline-flex items-center justify-center w-9 h-9 text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm shadow-teal-200 transition-all active:scale-95';
+        addItemBtn.title = '新增行程事項';
+
+        openFilesIcon.className = 'ph ph-folder text-lg text-teal-600';
+        if (openShareIcon) openShareIcon.className = 'ph ph-share-network text-lg text-teal-600';
+        if (appState.canEdit) {
+          openFilesBtn.classList.remove('hidden');
+          document.getElementById('open-share-btn').classList.remove('hidden');
+          addItemBtn.classList.remove('hidden');
+        } else {
+          openFilesBtn.classList.add('hidden');
+          document.getElementById('open-share-btn').classList.add('hidden');
+          addItemBtn.classList.add('hidden');
+        }
+
+        appBody.className = 'text-slate-800 min-h-screen flex flex-col antialiased bg-[#F8FAFC] selection:bg-teal-100 selection:text-teal-900 transition-colors duration-200';
+        showToast('🧭 已切換至「旅程規劃」');
+      }
+    }
+
+    headerLogoBtn?.addEventListener('click', () => switchView());
+    headerTitleWrap?.addEventListener('click', () => switchView());
+
+    addItemBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (appState.currentView === 'food') {
+        window.__openFoodModalForNew();
+      } else {
+        if (appState.canEdit) window.openModalForNew();
+      }
+    });
+
+    /* =========================================================================
+       🔥 美食圖鑑儲存與檢索管理 🔥
+       ========================================================================= */
+    const foodModal = document.getElementById('food-modal');
+    const foodForm = document.getElementById('food-form');
+    const foodModalTitleText = document.getElementById('food-modal-title-text');
+    const foodPhotoInput = document.getElementById('food-photo-input');
+    const foodPhotoPreviewList = document.getElementById('food-photo-preview-list');
+    const foodPhotoCountBadge = document.getElementById('food-photo-count-badge');
+    const foodRegionFilter = document.getElementById('food-region-filter');
+    const foodCityFilter = document.getElementById('food-city-filter');
+    const foodDistrictFilter = document.getElementById('food-district-filter');
+    const foodTypeFilter = document.getElementById('food-type-filter');
+    const foodSearchInput = document.getElementById('food-search-input');
+    const foodGridContainer = document.getElementById('food-grid-container');
+    const foodEmptyState = document.getElementById('food-empty-state');
+    const foodRegionSelect = document.getElementById('food-region-select');
+    const foodCitySelect = document.getElementById('food-city-select');
+    const foodDistrictInput = document.getElementById('food-district-input');
+    const foodCatalogTitleInput = document.getElementById('food-catalog-title-input');
+    const foodPaginationControls = document.getElementById('food-pagination-controls');
+    const foodPaginationNumbers = document.getElementById('food-pagination-numbers');
+    const foodPrevPageBtn = document.getElementById('food-prev-page-btn');
+    const foodNextPageBtn = document.getElementById('food-next-page-btn');
+    const foodListTotalInfo = document.getElementById('food-list-total-info');
+    const foodListPageIndicator = document.getElementById('food-list-page-indicator');
+    const saveFoodSubmitBtn = document.getElementById('save-food-submit-btn');
+
+    let currentFoodPhotos = [];
+
+    const cityData = {
+      north: ['基隆市', '臺北市', '新北市', '桃園市', '新竹市', '新竹縣', '宜蘭縣'],
+      central: ['苗栗縣', '臺中市', '彰化縣', '南投縣', '雲林縣'],
+      south: ['嘉義市', '嘉義縣', '臺南市', '高雄市', '屏東縣'],
+      east: ['花蓮縣', '臺東縣'],
+      islands: ['澎湖縣', '金門縣', '連江縣']
+    };
+
+    function populateCitySelect(regionSelect, citySelect, selectedCity = '') {
+      if (!citySelect) return;
+      citySelect.innerHTML = '<option value="">所有縣市</option>';
+      const region = regionSelect ? regionSelect.value : '';
+      if (!region || !cityData[region]) {
+        Object.values(cityData).flat().forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          if (c === selectedCity) opt.selected = true;
+          citySelect.appendChild(opt);
+        });
+        return;
+      }
+      cityData[region].forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        if (c === selectedCity) opt.selected = true;
+        citySelect.appendChild(opt);
+      });
+    }
+
+    foodRegionFilter?.addEventListener('change', () => {
+      populateCitySelect(foodRegionFilter, foodCityFilter);
+      appState.foodCurrentPage = 1;
+      renderFoodCards();
+    });
+
+    foodRegionSelect?.addEventListener('change', () => {
+      populateCitySelect(foodRegionSelect, foodCitySelect);
+    });
+
+    /* =========================================================================
+       🔥 核心升級：IndexedDB 巨量持久化儲存引擎 (徹底解決 5MB 上限與爆容量問題) 🔥
+       ========================================================================= */
+    const DB_NAME = 'FoodCatalogDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'restaurants';
+
+    function openIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const idb = e.target.result;
+          if (!idb.objectStoreNames.contains(STORE_NAME)) {
+            idb.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function saveFoodToIndexedDB(foodItem) {
+      if (!foodItem || !foodItem.id) return;
+      try {
+        const idb = await openIndexedDB();
+        return new Promise((resolve, reject) => {
+          const tx = idb.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          store.put(foodItem);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.error("IndexedDB save error:", err);
+      }
+    }
+
+    async function deleteFoodFromIndexedDB(foodId) {
+      if (!foodId) return;
+      try {
+        const idb = await openIndexedDB();
+        return new Promise((resolve, reject) => {
+          const tx = idb.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          store.delete(foodId);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.error("IndexedDB delete error:", err);
+      }
+    }
+
+    async function getAllFoodsFromIndexedDB() {
+      try {
+        const idb = await openIndexedDB();
+        return new Promise((resolve, reject) => {
+          const tx = idb.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (err) {
+        console.error("IndexedDB getAll error:", err);
+        return [];
+      }
+    }
+
+    function persistFoodsToLocalStorage() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (store) {
+          const meta = {
+            catalogId: appState.activeFoodCatalog.catalogId,
+            title: appState.activeFoodCatalog.title,
+            updatedAt: Date.now()
+          };
+          store.setItem('FOOD_CATALOG_ACTIVE_META', JSON.stringify(meta));
+        }
+      } catch (e) {}
+    }
+
+    async function loadFoodsFromLocalStorage() {
+      try {
+        const store = window.localStorage || window.sessionStorage;
+        if (store) {
+          const rawMeta = store.getItem('FOOD_CATALOG_ACTIVE_META');
+          if (rawMeta) {
+            const parsed = JSON.parse(rawMeta);
+            if (parsed && parsed.title) {
+              appState.activeFoodCatalog.title = parsed.title;
+            }
+          }
+        }
+      } catch (e) {}
+
+      // 從 IndexedDB 巨量庫載入全部店家
+      const idbItems = await getAllFoodsFromIndexedDB();
+      if (idbItems && idbItems.length > 0) {
+        idbItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        appState.activeFoodCatalog.items = idbItems;
+      }
+    }
+
+    async function saveSingleFoodToCloud(user, foodItem) {
+      if (!db || !user || user.isAnonymous || !foodItem) return;
+      try {
+        const foodDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'food_items', foodItem.id);
+        await setDoc(foodDocRef, {
+          ...foodItem,
+          creatorUid: user.uid,
+          updatedAt: Date.now()
+        }, { merge: true });
+      } catch (err) {
+        console.error("Cloud single food write error:", err);
+      }
+    }
+
+    async function deleteSingleFoodFromCloud(user, foodId) {
+      if (!db || !user || user.isAnonymous || !foodId) return;
+      try {
+        const foodDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'food_items', foodId);
+        await deleteDoc(foodDocRef);
+      } catch (err) {
+        console.warn("Cloud single food delete error:", err);
+      }
+    }
+
+    async function uploadAllLocalFoodsToCloud(user) {
+      if (!db || !user || user.isAnonymous) return;
+      const items = appState.activeFoodCatalog.items || [];
+      for (const item of items) {
+        await saveSingleFoodToCloud(user, item);
+      }
+    }
+
+    async function syncCloudFoodsSafely(user) {
+      if (!db || !user || user.isAnonymous) return;
+      try {
+        const itemsColRef = collection(db, 'artifacts', appId, 'users', user.uid, 'food_items');
+        const snap = await getDocs(itemsColRef);
+        
+        let cloudItemsMap = new Map();
+        snap.forEach(d => {
+          const data = d.data();
+          if (data && data.id) cloudItemsMap.set(data.id, data);
+        });
+
+        const localItems = appState.activeFoodCatalog.items || [];
+        const mergedMap = new Map();
+
+        cloudItemsMap.forEach((v, k) => mergedMap.set(k, v));
+
+        for (const item of localItems) {
+          if (!mergedMap.has(item.id)) {
+            mergedMap.set(item.id, item);
+            await saveSingleFoodToCloud(user, item);
+          } else {
+            const cloudItem = mergedMap.get(item.id);
+            if ((item.updatedAt || 0) >= (cloudItem.updatedAt || 0)) {
+              mergedMap.set(item.id, item);
+            }
+          }
+        }
+
+        const mergedItems = Array.from(mergedMap.values());
+        mergedItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        appState.activeFoodCatalog.items = mergedItems;
+        for (const item of mergedItems) {
+          await saveFoodToIndexedDB(item);
+        }
+        persistFoodsToLocalStorage();
+        renderFoodCards();
+      } catch (e) {
+        console.warn("Sync cloud foods safely error:", e);
+      }
+    }
+
+    foodCatalogTitleInput?.addEventListener('input', (e) => {
+      if (!appState.foodCanEdit) return;
+      appState.activeFoodCatalog.title = e.target.value;
+      persistFoodsToLocalStorage();
+    });
+
+    function renderFoodPhotoPreviews() {
+      if (!foodPhotoPreviewList) return;
+      foodPhotoPreviewList.innerHTML = '';
+      currentFoodPhotos.forEach((src, idx) => {
+        const container = document.createElement('div');
+        container.className = 'relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 group flex-shrink-0';
+        container.innerHTML = `
+          <img src="${src}" class="w-full h-full object-cover">
+          <button type="button" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center text-xs hover:bg-rose-600 transition-colors">✕</button>
+        `;
+        container.querySelector('button').addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentFoodPhotos.splice(idx, 1);
+          renderFoodPhotoPreviews();
+        });
+        foodPhotoPreviewList.appendChild(container);
+      });
+      if (foodPhotoCountBadge) {
+        foodPhotoCountBadge.textContent = `${currentFoodPhotos.length} / 10 張`;
+      }
+    }
+
+    if (foodPhotoInput) {
+      foodPhotoInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (currentFoodPhotos.length + files.length > 10) {
+          showToast('最多支援上傳 10 張照片');
+        }
+        const remaining = 10 - currentFoodPhotos.length;
+        const toProcess = files.slice(0, remaining);
+        showToast('照片智慧壓縮處理中...');
+        for (const file of toProcess) {
+          try {
+            const comp = await compressImageFile(file, 500, 0.45);
+            if (comp) currentFoodPhotos.push(comp);
+          } catch(err){}
+        }
+        foodPhotoInput.value = '';
+        renderFoodPhotoPreviews();
+        showToast('照片處理完畢！');
+      });
+    }
+
+    window.__openFoodModalForNew = function() {
+      if (!appState.foodCanEdit) return;
+      if (foodForm) foodForm.reset();
+      if (foodModalTitleText) foodModalTitleText.textContent = '新建美食圖鑑項目';
+      document.getElementById('edit-food-id').value = '';
+      currentFoodPhotos = [];
+      renderFoodPhotoPreviews();
+      populateCitySelect(foodRegionSelect, foodCitySelect);
+      showModal(foodModal);
+    };
+
+    window.__openEditFood = function(id) {
+      if (!appState.foodCanEdit) return;
+      const items = appState.activeFoodCatalog.items || [];
+      const item = items.find(it => it.id === id);
+      if (!item) return;
+
+      if (foodModalTitleText) foodModalTitleText.textContent = '編輯美食圖鑑項目';
+      document.getElementById('edit-food-id').value = item.id;
+      document.getElementById('food-name').value = item.name || '';
+      document.getElementById('food-region-select').value = item.region || 'north';
+      populateCitySelect(foodRegionSelect, foodCitySelect, item.city || '');
+      document.getElementById('food-city-select').value = item.city || '';
+      document.getElementById('food-district-input').value = item.district || '';
+      document.getElementById('food-type-select').value = item.type || '小吃';
+      document.getElementById('food-web-url').value = item.webUrl || '';
+      document.getElementById('food-map-url').value = item.mapUrl || '';
+      document.getElementById('food-note').value = (item.note || '').trim();
+
+      currentFoodPhotos = item.photos ? [...item.photos] : [];
+      renderFoodPhotoPreviews();
+      showModal(foodModal);
+    };
+
+    document.getElementById('close-food-modal-btn')?.addEventListener('click', () => hideModal(foodModal));
+    document.getElementById('cancel-food-modal-btn')?.addEventListener('click', () => hideModal(foodModal));
+    foodModal?.addEventListener('click', (e) => {
+      if (e.target === foodModal) hideModal(foodModal);
+    });
+
+    document.getElementById('auto-generate-map-btn')?.addEventListener('click', () => {
+      const name = document.getElementById('food-name').value.trim();
+      const city = document.getElementById('food-city-select').value;
+      const district = document.getElementById('food-district-input').value.trim();
+      if (!name) {
+        showToast('請先輸入餐廳名稱');
+        return;
+      }
+      const query = encodeURIComponent(`${city} ${district} ${name}`.replace(/\s+/g, ' ').trim());
+      document.getElementById('food-map-url').value = `https://www.google.com/maps/search/?api=1&query=${query}`;
+      showToast('已自動生成 Google Map 導航連結');
+    });
+
+    function renderFoodCards() {
+      if (!foodGridContainer) return;
+      foodGridContainer.innerHTML = '';
+
+      if (foodCatalogTitleInput) {
+        foodCatalogTitleInput.value = appState.activeFoodCatalog.title || '';
+      }
+
+      const rawItems = [...(appState.activeFoodCatalog.items || [])];
+      rawItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      const regVal = foodRegionFilter ? foodRegionFilter.value : '';
+      const cityVal = foodCityFilter ? foodCityFilter.value : '';
+      const districtVal = foodDistrictFilter ? foodDistrictFilter.value.trim().toLowerCase() : '';
+      const typeVal = foodTypeFilter ? foodTypeFilter.value : '';
+      const query = foodSearchInput ? foodSearchInput.value.trim().toLowerCase() : '';
+
+      const filtered = rawItems.filter(item => {
+        if (regVal && item.region !== regVal) return false;
+        if (cityVal && item.city !== cityVal) return false;
+        if (districtVal && !(item.district || '').toLowerCase().includes(districtVal)) return false;
+        if (typeVal && item.type !== typeVal) return false;
+        if (query) {
+          const matchName = (item.name || '').toLowerCase().includes(query);
+          const matchDistrict = (item.district || '').toLowerCase().includes(query);
+          const matchNote = (item.note || '').toLowerCase().includes(query);
+          if (!matchName && !matchDistrict && !matchNote) return false;
+        }
+        return true;
+      });
+
+      const totalItems = filtered.length;
+      const totalPages = Math.ceil(totalItems / appState.foodPageSize) || 1;
+
+      if (appState.foodCurrentPage > totalPages) appState.foodCurrentPage = totalPages;
+      if (appState.foodCurrentPage < 1) appState.foodCurrentPage = 1;
+
+      foodListTotalInfo.textContent = `共 ${totalItems} 間餐廳`;
+      foodListPageIndicator.textContent = `第 ${appState.foodCurrentPage} / ${totalPages} 頁`;
+
+      if (totalItems === 0) {
+        foodEmptyState?.classList.remove('hidden');
+        foodPaginationControls?.classList.add('hidden');
+        return;
+      }
+
+      foodEmptyState?.classList.add('hidden');
+
+      const startIndex = (appState.foodCurrentPage - 1) * appState.foodPageSize;
+      const pageItems = filtered.slice(startIndex, startIndex + appState.foodPageSize);
+
+      pageItems.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-2xl border border-slate-150 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-md transition-all flex flex-col overflow-hidden';
+        
+        let coverImg = (item.photos && item.photos.length > 0) ? item.photos[0] : null;
+        const locationLabel = [item.city, item.district].filter(Boolean).join(' · ');
+        const cleanedNote = (item.note || '').trim();
+
+        card.innerHTML = `
+          <div class="relative h-44 bg-slate-100 overflow-hidden">
+            ${coverImg 
+              ? `<img src="${coverImg}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300" onclick="window.__openLightbox('${coverImg}')">` 
+              : `<div class="w-full h-full flex flex-col items-center justify-center text-slate-300"><i class="ph ph-fork-knife text-4xl"></i><span class="text-xs mt-1 text-slate-400 font-medium">暫無照片</span></div>`}
+            
+            <span class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-md text-orange-950 shadow-sm">${escapeHtml(item.type || '美食')}</span>
+            ${locationLabel ? `<span class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-md text-slate-700 shadow-sm">${escapeHtml(locationLabel)}</span>` : ''}
+          </div>
+
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <h4 class="font-bold text-base text-slate-800 truncate">${escapeHtml(item.name)}</h4>
+              </div>
+
+              ${cleanedNote ? `
+                <div class="text-xs text-slate-600 mt-2.5 px-3 py-2 bg-slate-50/70 border border-slate-150 rounded-xl leading-relaxed break-words">
+                  ${formatNoteWithLinks(cleanedNote)}
+                </div>
+              ` : ''}
+
+              ${(item.photos && item.photos.length > 1) ? `
+                <div class="flex gap-1.5 mt-3 overflow-x-auto pb-1">
+                  ${item.photos.slice(1).map(p => `
+                    <img src="${p}" onclick="window.__openLightbox('${p}')" class="w-10 h-10 rounded-lg object-cover flex-shrink-0 cursor-pointer border border-slate-100 hover:opacity-80">
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${item.webUrl ? `<a href="${escapeHtml(item.webUrl)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 inline-flex items-center gap-1"><i class="ph ph-globe"></i> 官網</a>` : ''}
+                ${item.mapUrl ? `<a href="${escapeHtml(item.mapUrl)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-200 text-xs font-medium text-orange-700 inline-flex items-center gap-1"><i class="ph ph-navigation-arrow"></i> 導航</a>` : ''}
+              </div>
+
+              ${appState.foodCanEdit ? `
+                <div class="flex items-center gap-1">
+                  <button type="button" class="edit-food-btn text-slate-400 hover:text-amber-600 hover:bg-amber-50 p-2 rounded-xl transition-colors active:scale-95" title="編輯項目">
+                    <i class="ph ph-pencil-simple text-base"></i>
+                  </button>
+                  <button type="button" class="del-food-btn text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-xl transition-colors active:scale-95" title="刪除項目">
+                    <i class="ph ph-trash text-base"></i>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+        if (appState.foodCanEdit) {
+          card.querySelector('.edit-food-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.__openEditFood(item.id);
+          });
+
+          card.querySelector('.del-food-btn')?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const originalIdx = appState.activeFoodCatalog.items.findIndex(it => it.id === item.id);
+            if (originalIdx !== -1) {
+              const removedId = item.id;
+              appState.activeFoodCatalog.items.splice(originalIdx, 1);
+              await deleteFoodFromIndexedDB(removedId);
+              persistFoodsToLocalStorage();
+              renderFoodCards();
+              if (currentUser && !currentUser.isAnonymous) {
+                await deleteSingleFoodFromCloud(currentUser, removedId);
+              }
+              showToast('已移除美食項目');
+            }
+          });
+        }
+
+        foodGridContainer.appendChild(card);
+      });
+
+      if (totalPages > 1) {
+        foodPaginationControls.classList.remove('hidden');
+        foodPrevPageBtn.disabled = (appState.foodCurrentPage <= 1);
+        foodNextPageBtn.disabled = (appState.foodCurrentPage >= totalPages);
+
+        foodPaginationNumbers.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+          const pageBtn = document.createElement('button');
+          pageBtn.type = 'button';
+          const isActive = (i === appState.foodCurrentPage);
+          pageBtn.className = `w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+            isActive 
+              ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-xs' 
+              : 'text-slate-600 hover:bg-slate-100 bg-white border border-slate-200'
+          }`;
+          pageBtn.textContent = i;
+          pageBtn.addEventListener('click', () => {
+            appState.foodCurrentPage = i;
+            renderFoodCards();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+          foodPaginationNumbers.appendChild(pageBtn);
+        }
+      } else {
+        foodPaginationControls.classList.add('hidden');
+      }
+    }
+
+    foodPrevPageBtn?.addEventListener('click', () => {
+      if (appState.foodCurrentPage > 1) {
+        appState.foodCurrentPage--;
+        renderFoodCards();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+    foodNextPageBtn?.addEventListener('click', () => {
+      const totalPages = Math.ceil((appState.activeFoodCatalog.items || []).length / appState.foodPageSize);
+      if (appState.foodCurrentPage < totalPages) {
+        appState.foodCurrentPage++;
+        renderFoodCards();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+    foodForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!appState.foodCanEdit) return;
+
+      saveFoodSubmitBtn.disabled = true;
+      saveFoodSubmitBtn.innerHTML = `<i class="ph ph-spinner animate-spin"></i><span>寫入資料庫與雲端中...</span>`;
+
+      const editId = document.getElementById('edit-food-id').value;
+      const foodPayload = {
+        name: document.getElementById('food-name').value.trim(),
+        region: document.getElementById('food-region-select').value,
+        city: document.getElementById('food-city-select').value,
+        district: document.getElementById('food-district-input').value.trim(),
+        type: document.getElementById('food-type-select').value,
+        webUrl: document.getElementById('food-web-url').value.trim(),
+        mapUrl: document.getElementById('food-map-url').value.trim(),
+        note: document.getElementById('food-note').value.trim(),
+        photos: [...currentFoodPhotos]
+      };
+
+      if (!appState.activeFoodCatalog.items) appState.activeFoodCatalog.items = [];
+
+      let savedItem = null;
+
+      if (editId) {
+        const idx = appState.activeFoodCatalog.items.findIndex(it => it.id === editId);
+        if (idx !== -1) {
+          savedItem = {
+            ...appState.activeFoodCatalog.items[idx],
+            ...foodPayload,
+            updatedAt: Date.now()
+          };
+          appState.activeFoodCatalog.items[idx] = savedItem;
+          showToast('已更新並同步餐廳！');
+        }
+      } else {
+        savedItem = {
+          id: 'food_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+          ...foodPayload,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+        appState.activeFoodCatalog.items.unshift(savedItem);
+        appState.foodCurrentPage = 1;
+        showToast('已成功收入餐廳！');
+      }
+
+      // 1. 先寫入容量數 GB 的 IndexedDB（保證絕對不會塞爆）
+      if (savedItem) {
+        await saveFoodToIndexedDB(savedItem);
+      }
+      persistFoodsToLocalStorage();
+
+      // 2. 若已登入 Google，直接非同步寫入個人的 Firebase 專屬雲端文件
+      if (currentUser && !currentUser.isAnonymous && savedItem) {
+        try {
+          await saveSingleFoodToCloud(currentUser, savedItem);
+        } catch(err) {
+          console.warn("Direct save to cloud error:", err);
+        }
+      }
+
+      saveFoodSubmitBtn.disabled = false;
+      saveFoodSubmitBtn.innerHTML = `<span>確認儲存</span>`;
+
+      hideModal(foodModal);
+      renderFoodCards();
+    });
+
+    [foodRegionFilter, foodCityFilter, foodTypeFilter].forEach(el => el?.addEventListener('change', () => {
+      appState.foodCurrentPage = 1;
+      renderFoodCards();
+    }));
+    foodDistrictFilter?.addEventListener('input', () => {
+      appState.foodCurrentPage = 1;
+      renderFoodCards();
+    });
+    foodSearchInput?.addEventListener('input', () => {
+      appState.foodCurrentPage = 1;
+      renderFoodCards();
+    });
+
+    /* =========================================================================
+       應用程式安全啟動流程 (BFCache 防重整喚醒保護)
+       ========================================================================= */
+    async function startApp() {
+      await loadFoodsFromLocalStorage();
+      populateCitySelect(foodRegionFilter, foodCityFilter);
+      appState.deviceId = getOrCreateDeviceId();
+      const { tripId, foodCatId, mode } = parseUrlParams();
+
+      if (auth) {
+        onAuthStateChanged(auth, async (user) => {
+          currentUser = user;
+          updateAuthUI(user);
+          if (user && !user.isAnonymous) {
+            await syncCloudTripsForUser(user);
+            await syncCloudFoodsSafely(user);
+          }
+        });
+      }
+
+      if (foodCatId) {
+        switchView('food');
+        if (db) {
+          try {
+            const pubFoodRef = doc(db, 'artifacts', appId, 'public', 'data', 'food_catalogs', foodCatId);
+            const snap = await getDoc(pubFoodRef);
+            if (snap.exists()) {
+              appState.activeFoodCatalog = snap.data();
+            }
+          } catch(e) {}
+        }
+        appState.foodCanEdit = false;
+        applyPermissionUI();
+        renderFoodCards();
+      }
+
+      if (tripId) {
+        let loaded = false;
+        if (db) {
+          try {
+            const tripRef = doc(db, 'artifacts', appId, 'public', 'data', 'trips', tripId);
+            const snap = await getDoc(tripRef);
+            if (snap.exists()) {
+              appState.data = snap.data();
+              loaded = true;
+            }
+          } catch (e) {}
+        }
+        appState.canEdit = false;
+        appState.isCreator = false;
+      } else if (!foodCatId) {
+        try {
+          const store = window.localStorage || window.sessionStorage;
+          let activeId = store ? store.getItem('CURRENT_ACTIVE_TRIP_ID') : null;
+          let local = activeId && store ? store.getItem('TRIP_DATA_' + activeId) : null;
+          if (local) {
+            const parsed = JSON.parse(local);
+            if (!(parsed.title || '').includes('知性輕旅行')) {
+              appState.data = parsed;
+            }
+          }
+        } catch (e) {}
+        appState.canEdit = true;
+        appState.isCreator = true;
+      }
+
+      setupTimeInputAutoFormat(document.getElementById('start-time-input'));
+      setupTimeInputAutoFormat(document.getElementById('end-time-input'));
+
+      document.getElementById('trip-title-input').value = appState.data.title || '';
+
+      applyPermissionUI();
+      renderDayTabs();
+      renderTimeline();
+      renderFoodCards();
+    }
+
+    // 生命週期防護：切換應用程式或休眠時強制寫入 IndexedDB，回前景時無縫恢復
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'hidden') {
+        persistFoodsToLocalStorage();
+      } else if (document.visibilityState === 'visible') {
+        await loadFoodsFromLocalStorage();
+        renderFoodCards();
+      }
+    });
+
+    window.addEventListener('pageshow', async () => {
+      await loadFoodsFromLocalStorage();
+      renderFoodCards();
+    });
+
+    startApp();
+  </script>
+</body>
+</html>
